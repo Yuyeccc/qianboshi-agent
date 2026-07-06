@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# 环境
+.env
+venv/
+.venv/
+
+# 音频/视频文件（大文件不提交）
+*.m4a
+*.wav
+*.mp3
+*.mp4
+
+# 临时文字稿
+/tmp/
+
+# Obsidian笔记（单独管理）
+assets/*.md
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
