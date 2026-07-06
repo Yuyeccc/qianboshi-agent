@@ -1,0 +1,29 @@
+# 项目配置
+model:
+  default: deepseek/deepseek-v4-flash
+  provider: deepseek
+
+# 数据路径
+paths:
+  audio: /tmp/qianboshi_*.m4a
+  wav: /tmp/qianboshi_*.wav
+  transcript: /tmp/qianboshi_*_transcript.txt
+  obsidian_vault: ~/Documents/Obsidian Vault/
+
+# B站配置
+bilibili:
+  space_id: "480741488"
+  cookies_file: /tmp/bilibili_cookies.txt
+
+# Whisper配置
+whisper:
+  model_size: small
+  device: cpu
+  language: zh
+  beam_size: 5
+
+# 向量库
+vector_db:
+  type: chromadb
+  path: ~/.qianboshi/chromadb
+  embedding_model: shibing624/text2vec-base-chinese
