@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "date": "2026-07-14",
+      "time": "23:08",
+      "results": [
+        {
+          "sector": "光模块",
+          "etf": "光模块ETF",
+          "code": "515060",
+          "verdict": "⏳ 待观察",
+          "reason": "行情获取失败: Too Many Requests. Rate limited. Try after a while.",
+          "sentiment": "bullish",
+          "view_date": "2026-07-07",
+          "price_change": null
+        },
+        {
+          "sector": "创新药",
+          "etf": "创新药ETF",
+          "code": "159992",
+          "verdict": "⏳ 待观察",
+          "reason": "行情获取失败: Too Many Requests. Rate limited. Try after a while.",
+          "sentiment": "bearish",
+          "view_date": "2026-07-07",
+          "price_change": null
+        },
+        {
+          "sector": "机器人",
+          "etf": "机器人ETF",
+          "code": "562500",
+          "verdict": "⏳ 待观察",
+          "reason": "行情获取失败: Too Many Requests. Rate limited. Try after a while.",
+          "sentiment": "bearish",
+          "view_date": "2026-07-07",
+          "price_change": null
+        },
+        {
+          "sector": "半导体",
+          "etf": "半导体ETF",
+          "code": "512480",
+          "verdict": "⏳ 待观察",
+          "reason": "行情获取失败: Too Many Requests. Rate limited. Try after a while.",
+          "sentiment": "bullish",
+          "view_date": "2026-07-07",
+          "price_change": null
+        },
+        {
+          "sector": "AI",
+          "etf": "AI人工智能ETF",
+          "code": "516630",
+          "verdict": "⏳ 待观察",
+          "reason": "行情获取失败: Too Many Requests. Rate limited. Try after a while.",
+          "sentiment": "bearish",
+          "view_date": "2026-07-07",
+          "price_change": null
+        },
+        {
+          "sector": "储能",
+          "etf": "储能ETF",
+          "code": "516380",
+          "verdict": "⏳ 待观察",
+          "reason": "行情获取失败: Too Many Requests. Rate limited. Try after a while.",
+          "sentiment": "bullish",
+          "view_date": "2026-07-07",
+          "price_change": null
+        },
+        {
+          "sector": "新能源",
+          "etf": "新能源ETF",
+          "code": "516160",
+          "verdict": "⏳ 待观察",
+          "reason": "行情获取失败: Too Many Requests. Rate limited. Try after a while.",
+          "sentiment": "bearish",
+          "view_date": "2026-07-07",
+          "price_change": null
+        },
+        {
+          "sector": "消费电子",
+          "etf": "消费电子ETF",
+          "code": "159732",
+          "verdict": "⏳ 待观察",
+          "reason": "行情获取失败: Too Many Requests. Rate limited. Try after a while.",
+          "sentiment": "bearish",
+          "view_date": "2026-07-07",
+          "price_change": null
+        },
+        {
+          "sector": "PCB",
+          "etf": "科创板50ETF",
+          "code": "588380",
+          "verdict": "⏳ 待观察",
+          "reason": "行情获取失败: Too Many Requests. Rate limited. Try after a while.",
+          "sentiment": "bullish",
+          "view_date": "2026-07-07",
+          "price_change": null
+        }
+      ]
+    }
+  ],
+  "updated": "2026-07-14"
+}
