@@ -1,0 +1,148 @@
+{
+  "version": 2,
+  "updated": "2026-07-09",
+  "description": "钱博士Agent - 跟踪标的池（持续更新）",
+  "stocks": {
+    "300502": {
+      "name": "新易盛",
+      "sector": "光模块",
+      "market": "SZ",
+      "reason": "钱博士多次提及，光模块核心标的"
+    },
+    "300308": {
+      "name": "中际旭创",
+      "sector": "光模块",
+      "market": "SZ",
+      "reason": "钱博士提及，光模块龙头"
+    },
+    "300394": {
+      "name": "天孚通信",
+      "sector": "光模块",
+      "market": "SZ",
+      "reason": "钱博士提及"
+    },
+    "600745": {
+      "name": "闻泰科技",
+      "sector": "半导体",
+      "market": "SS",
+      "reason": "钱博士提及"
+    },
+    "688981": {
+      "name": "中芯国际",
+      "sector": "半导体",
+      "market": "SS",
+      "reason": "半导体设备核心"
+    },
+    "688012": {
+      "name": "中微公司",
+      "sector": "半导体设备",
+      "market": "SS",
+      "reason": "钱博士提及，半导体设备"
+    },
+    "600519": {
+      "name": "贵州茅台",
+      "sector": "消费",
+      "market": "SS",
+      "reason": "市场风向标"
+    },
+    "601899": {
+      "name": "紫金矿业",
+      "sector": "有色",
+      "market": "SS",
+      "reason": "钱博士最新深度分析"
+    },
+    "600547": {
+      "name": "山东黄金",
+      "sector": "黄金",
+      "market": "SS",
+      "reason": "黄金板块"
+    },
+    "159992": {
+      "name": "创新药ETF",
+      "sector": "创新药",
+      "market": "SZ",
+      "reason": "个人持仓"
+    }
+  },
+  "etfs": {
+    "159992": {
+      "name": "创新药ETF",
+      "sector": "创新药",
+      "reason": "个人持仓"
+    }
+  },
+  "sectors": [
+    "光模块/光通信",
+    "半导体设备",
+    "创新药",
+    "黄金/贵金属",
+    "有色金属",
+    "消费/白酒"
+  ],
+  "us_stocks": {
+    "NVDA": {
+      "name": "英伟达",
+      "sector": "半导体/AI",
+      "reason": "AI风向标"
+    },
+    "TSLA": {
+      "name": "特斯拉",
+      "sector": "新能源车",
+      "reason": "成长股风向标"
+    },
+    "AAPL": {
+      "name": "苹果",
+      "sector": "消费电子",
+      "reason": "美股核心权重"
+    },
+    "AMD": {
+      "name": "AMD",
+      "sector": "半导体",
+      "reason": "芯片竞争格局"
+    },
+    "SMCI": {
+      "name": "超微电脑",
+      "sector": "AI算力",
+      "reason": "AI硬件爆发标的"
+    },
+    "AVGO": {
+      "name": "博通",
+      "sector": "半导体/AI",
+      "reason": "AI网络芯片"
+    },
+    "MRVL": {
+      "name": "迈威尔科技",
+      "sector": "半导体/AI",
+      "reason": "AI网络芯片"
+    }
+  },
+  "us_indexes": {
+    "^DJI": {
+      "name": "道琼斯",
+      "reason": "美股大盘"
+    },
+    "^IXIC": {
+      "name": "纳斯达克",
+      "reason": "科技股风向标"
+    },
+    "^GSPC": {
+      "name": "标普500",
+      "reason": "美股整体"
+    }
+  },
+  "cn_indexes": {
+    "000001.SS": {
+      "name": "上证指数",
+      "reason": "A股大盘"
+    },
+    "399001.SZ": {
+      "name": "深证成指",
+      "reason": "A股大盘"
+    },
+    "399006.SZ": {
+      "name": "创业板指",
+      "reason": "成长股风向标"
+    }
+  },
+  "cache": {}
+}

@@ -1,0 +1,87 @@
+# 钱博士Agent 统一配置
+# 优先级: 代码默认值 < config.yaml < 环境变量 < 命令行参数
+version: 1
+
+paths:
+  # Obsidian 笔记目录（结构化笔记源）
+  obsidian_vault: E:/obsidian-vault/学习/钱博士
+  # 数据目录（所有 JSON + 向量库集中存放）
+  data_dir: ./data
+  # 音频目录（下载的 WAV 文件）
+  audio_dir: ./audio
+  # 转录文本目录
+  transcripts_dir: ./transcripts
+  # 结构化笔记目录（深研一点等第三方总结）
+  notes_dir: ./notes
+  # 日志目录
+  log_dir: ./logs
+
+rag:
+  vector_db_path: ""           # 空=使用 data_dir/vector_db
+  collection_name: qianboshi
+  top_k: 5
+  score_weights:
+    similarity: 0.6
+    freshness: 0.2
+    type_boost: 0.2
+  type_weights:
+    short_video: 1.0
+    livestream: 0.8
+    catalog: 0.0
+
+market:
+  # 代理（用于海外行情接口等）
+  proxy: http://127.0.0.1:7897
+  # 行情缓存 TTL（分钟），非交易时段自动使用缓存
+  cache_ttl_minutes: 30
+  # 美股涨幅榜扫描列表
+  us_watchlist:
+    - AAPL
+    - MSFT
+    - GOOGL
+    - AMZN
+    - META
+    - NVDA
+    - TSLA
+    - AMD
+    - INTC
+    - MU
+    - AVGO
+    - MRVL
+    - QCOM
+    - SMCI
+    - ARM
+    - PLTR
+    - LLY
+    - JPM
+    - V
+    - BABA
+    - TSM
+    - COIN
+    - MSTR
+    - SPOT
+    - UBER
+    - DASH
+
+notifications:
+  # 飞书 webhook URL（建议通过环境变量 FEISHU_WEBHOOK_URL 设置）
+  feishu_webhook: ""
+  # 日报推送时间（cron 表达式）
+  daily_brief_cron: "0 9 * * 1-5"
+
+llm:
+  # DeepSeek API 配置（密钥放 .env 文件，不要写在这里）
+  api_base: https://api.deepseek.com/v1
+  api_key_env: DEEPSEEK_API_KEY          # 从环境变量读取
+  routine_model: deepseek-chat            # 日常任务（查询、分类）
+  analysis_model: deepseek-v4-pro         # 分析推理（简报、建议）
+  max_tokens: 4096
+  temperature:
+    routine: 0.3
+    analysis: 0.7
+
+bilibili:
+  cookies_netscape: ""         # Netscape 格式 cookies 路径
+  cookies_json: ""             # JSON 格式 cookies 路径
+  live_mid: 480741488          # 钱博士直播回放频道 MID
+  video_mid: 1129838925        # 钱博士短视频频道 MID

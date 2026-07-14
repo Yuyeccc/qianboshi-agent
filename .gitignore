@@ -1,0 +1,29 @@
+# 密钥 — 绝对不能提交
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 大型数据文件（音频/转录可重新生成）
+audio/
+transcripts/
+
+# 向量库（二进制文件，build_vector_db.py 可重建）
+data/vector_db/
+
+# 日志
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store

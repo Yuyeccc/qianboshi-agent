@@ -1,0 +1,18 @@
+# 钱博士Agent 依赖
+# 安装: pip install -r requirements.txt
+
+# === 核心 ===
+chromadb>=1.5.0,<2.0.0           # 向量数据库（含ONNX embedder）
+
+# === 行情数据 ===
+yfinance>=1.5.0,<2.0.0           # 雅虎财经行情接口
+
+# === 网络 ===
+requests>=2.28.0                  # HTTP请求（断点续传下载、飞书推送）
+
+# === 配置 ===
+PyYAML>=6.0                       # 读取 config.yaml
+
+# === 可选（转写流水线用） ===
+# faster-whisper>=1.0.0           # GPU转写（RTX 4060）
+# yt-dlp>=2024.0.0                # B站视频/音频下载

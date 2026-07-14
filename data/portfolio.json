@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "updated": "2026-07-09",
+  "holdings": {
+    "159992": {
+      "shares": 1180.0,
+      "avg_cost": 0.847,
+      "name": "创新药ETF",
+      "sector": "",
+      "buy_date": "2026-07-09"
+    }
+  },
+  "cash": 0,
+  "currency": "CNY",
+  "total_cost": 999.46,
+  "history": []
+}
