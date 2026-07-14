@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-钱博士观点验证脚本 — Phase 4 反馈闭环
+多分析师观点验证脚本 — 10位分析师 vs 市场实际走势
 
-钱博士的核心输出是板块级观点（光模块/创新药/机器人...），不是个股推荐。
-因此验证逻辑：板块观点 vs 板块ETF实际走势。
+对每个板块：RAG检索所有分析师的最新观点 → 拉ETF实际走势 → 判定✅/❌/⏳
+输出多分析师对照表：谁看对了、谁被打脸。
 
 用法:
     python validate.py                  # 验证所有板块
     python validate.py --sector 光模块   # 单板块
-    python validate.py --report         # 读已有日志生成报告
+    python validate.py --report         # 读历史日志
 """
 import argparse
 import json
@@ -149,8 +149,8 @@ def days_ago_str(d):
 
 def validate_sector(rag, sector, etf_code, etf_name, verbose=False):
     """验证钱博士对某个板块的观点"""
-    # 1. RAG检索板块观点（多取一些，前几个往往是元数据chunk）
-    results = rag.query(f"{sector} 观点 走势 判断 看好 风险", top_k=15)
+    # 1. RAG检索（不限分析师）
+    results = rag.query(f"{sector} 观点 走势 判断 看好 风险 机会", top_k=15)
 
     if not results:
         return {"sector": sector, "etf": etf_name, "code": etf_code,
@@ -259,7 +259,7 @@ def generate_report(results):
 
     lines = [
         "=" * 56,
-        f"  钱博士观点验证报告 — {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"  多分析师观点验证报告 — {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         "=" * 56,
         "",
         f"  ✅ 验证通过: {len(verified)}  ❌ 被打脸: {len(disproved)}",

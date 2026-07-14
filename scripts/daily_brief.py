@@ -382,7 +382,7 @@ BRIEF_TEMPLATE = """📊 **钱博士盘前简报** | {date_str}
 > "{quote}"
 
 ━━━━━━━━━━━━━━━━━━━━━━━
-🤖 钱博士Agent | 数据: yfinance + RAG(58篇笔记)
+🤖 投资研究Agent | 数据: yfinance + RAG(88篇/10位分析师)
 ⚡ 不构成投资建议 | 投资有风险
 """
 
@@ -412,11 +412,11 @@ def generate_brief(config, rag, skip_market=False):
         except Exception as e:
             tracking_data = {"alerts": [], "error": str(e)}
 
-    # ── RAG观点 ──
+    # ── RAG观点（不限来源）──
     rag_results = {
-        "大势": rag.query("当前市场环境 牛市 熊市 大盘判断", top_k=2),
-        "板块": rag.query("看好的板块 确定性最高 板块推荐", top_k=2),
-        "风险": rag.query("风险提示 逃顶信号 警惕 减仓", top_k=2),
+        "大势": rag.query("当前市场环境 牛市 熊市 大盘判断 市场状态", top_k=3),
+        "板块": rag.query("看好的板块 确定性最高 板块推荐 重点关注", top_k=3),
+        "风险": rag.query("风险提示 逃顶信号 警惕 减仓 注意风险", top_k=3),
     }
 
     # ── 组装 ──
