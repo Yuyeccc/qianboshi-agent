@@ -1,17 +1,122 @@
-{
-  "version": 2,
-  "updated": "2026-07-09",
-  "holdings": {
-    "159992": {
-      "shares": 1180.0,
-      "avg_cost": 0.847,
-      "name": "创新药ETF",
-      "sector": "",
-      "buy_date": "2026-07-09"
-    }
+﻿{
+ "version": 3,
+ "updated": "2026-09-01",
+ "holdings": {
+  "027695": {
+   "shares": 564.78,
+   "buy_amount": 500,
+   "avg_cost": 0.8853,
+   "name": "华夏中证电池主题ETF发起式联接C",
+   "sector": "新能源/电池",
+   "buy_date": "2026-08-24",
+   "note": "8/24 16:00提交500元，按8/25净值0.8853确认564.78份。场内对应512460电池ETF华夏",
+   "market_code": "512460.SS",
+   "nav_date": "2026-08-26"
+  }
+ },
+ "cash": 0,
+ "currency": "CNY",
+ "total_cost": 500.0,
+ "closed_positions": [
+  {
+   "code": "000217",
+   "name": "华安黄金ETF联接C",
+   "buy_date": "2026-08-04",
+   "sell_dates": [
+    "2026-08-25",
+    "2026-08-26"
+   ],
+   "cost": 800,
+   "proceeds": 891.62,
+   "pnl": 91.62,
+   "pnl_pct": 11.45,
+   "note": "规则a建仓(500+100+100+100)，8/25卖150份@3.3653，8/26清仓114.9份@3.3666。盈利+91.62元"
   },
-  "cash": 0,
-  "currency": "CNY",
-  "total_cost": 999.46,
-  "history": []
+  {
+   "code": "159992",
+   "name": "创新药ETF银华",
+   "buy_date": "2026-08-05",
+   "sell_date": "2026-08-11",
+   "cost": 989.01,
+   "proceeds": 1026.3,
+   "pnl": 37.29,
+   "pnl_pct": 3.77,
+   "note": "1100股@0.8991买入，8/11@0.933全部卖出"
+  }
+ ],
+ "history": [
+  {
+   "date": "2026-08-04",
+   "action": "buy",
+   "code": "000217",
+   "amount": 500,
+   "shares": 168.01,
+   "nav": 2.9761
+  },
+  {
+   "date": "2026-08-05",
+   "action": "buy",
+   "code": "000217",
+   "amount": 100,
+   "shares": 32.85,
+   "nav": 3.0437
+  },
+  {
+   "date": "2026-08-05",
+   "action": "buy",
+   "code": "159992",
+   "amount": 989.01,
+   "shares": 1100,
+   "nav": 0.8991
+  },
+  {
+   "date": "2026-08-06",
+   "action": "buy",
+   "code": "000217",
+   "amount": 100,
+   "shares": 32.1,
+   "nav": 3.1156
+  },
+  {
+   "date": "2026-08-07",
+   "action": "buy",
+   "code": "000217",
+   "amount": 100,
+   "shares": 31.94,
+   "nav": 3.1312
+  },
+  {
+   "date": "2026-08-11",
+   "action": "sell",
+   "code": "159992",
+   "amount": 1026.3,
+   "shares": 1100,
+   "price": 0.933
+  },
+  {
+   "date": "2026-08-24",
+   "action": "buy",
+   "code": "027695",
+   "amount": 500,
+   "shares": 564.78,
+   "nav": 0.8853,
+   "nav_date": "2026-08-25"
+  },
+  {
+   "date": "2026-08-25",
+   "action": "sell",
+   "code": "000217",
+   "amount": 504.8,
+   "shares": 150,
+   "price": 3.3653
+  },
+  {
+   "date": "2026-08-26",
+   "action": "sell",
+   "code": "000217",
+   "amount": 386.82,
+   "shares": 114.9,
+   "price": 3.3666
+  }
+ ]
 }
