@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "generated_at": "2026-09-01 01:56:39",
+    "n_resolved": 9935,
+    "n_perm": 1000,
+    "seed": 42
+  },
+  "results": [
+    {
+      "layer_a": "ok",
+      "layer_b": "其余",
+      "n_a": 107,
+      "n_b": 241,
+      "rate_a": 0.785,
+      "rate_b": 0.6639,
+      "d_obs": 0.1211,
+      "p_one_sided": 0.022,
+      "p_two_sided": 0.037,
+      "n_perm": 1000,
+      "seed": 42,
+      "window_days": 3,
+      "segment": "test"
+    },
+    {
+      "layer_a": "ok",
+      "layer_b": "其余",
+      "n_a": 107,
+      "n_b": 241,
+      "rate_a": 0.6262,
+      "rate_b": 0.5104,
+      "d_obs": 0.1158,
+      "p_one_sided": 0.023,
+      "p_two_sided": 0.04,
+      "n_perm": 1000,
+      "seed": 42,
+      "window_days": 5,
+      "segment": "test"
+    }
+  ]
+}
