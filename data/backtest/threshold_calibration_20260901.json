@@ -1,0 +1,219 @@
+{
+  "meta": {
+    "generated_at": "2026-09-01T01:07:04",
+    "auth_hash": "0170fbda666c5958",
+    "status_hash": "eb1036093f8e42dd",
+    "event_count": 6984,
+    "view_count": 728,
+    "main_window": 5,
+    "note": "候选区间为收缩估计，待独立 OOS 验证后定值；conf3 证据映射不动；命中率对窗口敏感需标注口径"
+  },
+  "matrix": {
+    "A": {
+      "n_views": 391,
+      "hits": 194,
+      "hit_rate": 0.4962,
+      "wilson": [
+        0.4469,
+        0.5455
+      ],
+      "mapped_confidence": 0.9,
+      "bias": -0.4038,
+      "candidate_interval": [
+        0.47,
+        0.52
+      ],
+      "exploratory_only": false
+    },
+    "B": {
+      "n_views": 70,
+      "hits": 34,
+      "hit_rate": 0.4857,
+      "wilson": [
+        0.3725,
+        0.6005
+      ],
+      "mapped_confidence": 0.7,
+      "bias": -0.2143,
+      "candidate_interval": [
+        0.43,
+        0.55
+      ],
+      "exploratory_only": false
+    },
+    "C": {
+      "n_views": 42,
+      "hits": 22,
+      "hit_rate": 0.5238,
+      "wilson": [
+        0.3772,
+        0.6664
+      ],
+      "mapped_confidence": 0.5,
+      "bias": 0.0238,
+      "candidate_interval": [
+        0.45,
+        0.59
+      ],
+      "exploratory_only": false
+    },
+    "D": {
+      "n_views": 70,
+      "hits": 32,
+      "hit_rate": 0.4571,
+      "wilson": [
+        0.3457,
+        0.573
+      ],
+      "mapped_confidence": 0.3,
+      "bias": 0.1571,
+      "candidate_interval": [
+        0.41,
+        0.52
+      ],
+      "exploratory_only": false
+    },
+    "NO_ANNOT": {
+      "n_views": 155,
+      "hits": 77,
+      "hit_rate": 0.4968,
+      "wilson": [
+        0.4191,
+        0.5746
+      ],
+      "mapped_confidence": null,
+      "bias": null,
+      "candidate_interval": [
+        0.46,
+        0.54
+      ],
+      "exploratory_only": false
+    }
+  },
+  "cross": {
+    "A": {
+      "ok": {
+        "n": 106,
+        "hit_rate": 0.4811,
+        "exploratory": false
+      },
+      "partial_anchor": {
+        "n": 6,
+        "hit_rate": 0.5,
+        "exploratory": true
+      },
+      "template_only": {
+        "n": 278,
+        "hit_rate": 0.5,
+        "exploratory": false
+      }
+    },
+    "B": {
+      "ok": {
+        "n": 11,
+        "hit_rate": 0.7273,
+        "exploratory": true
+      },
+      "partial_anchor": {
+        "n": 0,
+        "hit_rate": null,
+        "exploratory": true
+      },
+      "template_only": {
+        "n": 59,
+        "hit_rate": 0.4407,
+        "exploratory": false
+      }
+    },
+    "C": {
+      "ok": {
+        "n": 8,
+        "hit_rate": 0.875,
+        "exploratory": true
+      },
+      "partial_anchor": {
+        "n": 0,
+        "hit_rate": null,
+        "exploratory": true
+      },
+      "template_only": {
+        "n": 34,
+        "hit_rate": 0.4412,
+        "exploratory": false
+      }
+    },
+    "D": {
+      "ok": {
+        "n": 2,
+        "hit_rate": 1.0,
+        "exploratory": true
+      },
+      "partial_anchor": {
+        "n": 43,
+        "hit_rate": 0.4186,
+        "exploratory": false
+      },
+      "template_only": {
+        "n": 25,
+        "hit_rate": 0.48,
+        "exploratory": true
+      }
+    }
+  },
+  "sensitivity": {
+    "3": {
+      "A": {
+        "n_views": 391,
+        "hit_rate": 0.4962
+      },
+      "B": {
+        "n_views": 70,
+        "hit_rate": 0.4571
+      },
+      "C": {
+        "n_views": 42,
+        "hit_rate": 0.4286
+      },
+      "D": {
+        "n_views": 70,
+        "hit_rate": 0.4429
+      }
+    },
+    "5": {
+      "A": {
+        "n_views": 391,
+        "hit_rate": 0.4962
+      },
+      "B": {
+        "n_views": 70,
+        "hit_rate": 0.4857
+      },
+      "C": {
+        "n_views": 42,
+        "hit_rate": 0.5238
+      },
+      "D": {
+        "n_views": 70,
+        "hit_rate": 0.4571
+      }
+    },
+    "10": {
+      "A": {
+        "n_views": 391,
+        "hit_rate": 0.5038
+      },
+      "B": {
+        "n_views": 70,
+        "hit_rate": 0.5143
+      },
+      "C": {
+        "n_views": 42,
+        "hit_rate": 0.5
+      },
+      "D": {
+        "n_views": 70,
+        "hit_rate": 0.4571
+      }
+    }
+  }
+}
