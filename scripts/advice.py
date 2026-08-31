@@ -51,7 +51,7 @@ def call_llm(system_prompt, user_prompt, api_key=None):
                 "Content-Type": "application/json",
             },
             json={
-                "model": "deepseek-chat",
+                "model": "deepseek-v4-flash",
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -77,7 +77,7 @@ def call_llm(system_prompt, user_prompt, api_key=None):
                 "Content-Type": "application/json",
             },
             json={
-                "model": "deepseek/deepseek-v4",
+                "model": "deepseek/deepseek-v4-flash",
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},

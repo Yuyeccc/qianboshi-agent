@@ -1,6 +1,6 @@
-# #14v2 分层前瞻回测报表（2026-09-01T00:24:28）
+# #14v2 分层前瞻回测报表（2026-09-01T01:24:49）
 
-- run_id: `20260901T002428` | git: 6299214 | 规则: tuple_status_any_ok_v1
+- run_id: `20260901T012449` | git: 5811cce | 规则: tuple_status_any_ok_v1
 - 数据: view_tuple_status.json sha256=eb1036093f8e42dd | prediction_events=31320
 - OOS: train≤2026-06-30 / test≥2026-07-01 / roll≥2026-07-15（expanding）
 - 命中规则: bull ret>0 / bear ret<0 / risk 0.5(≤3d)·1.0(≤10d)·2.0(>10d)
@@ -9,295 +9,325 @@
 
 | layer | resolved | error | skipped | eligible | 可评估覆盖率 |
 |---|---|---|---|---|---|
-| ok | 1429 | 596 | 2045 | 2025 | 70.6% |
-| partial_anchor | 485 | 1605 | 1560 | 2090 | 23.2% |
-| template_only | 3642 | 5563 | 3700 | 9205 | 39.6% |
-| no_ru | 1428 | 4902 | 4365 | 6330 | 22.6% |
+| ok | 1595 | 430 | 2045 | 2025 | 78.8% |
+| partial_anchor | 655 | 1435 | 1560 | 2090 | 31.3% |
+| template_only | 5620 | 3585 | 3700 | 9205 | 61.1% |
+| no_ru | 2065 | 4265 | 4365 | 6330 | 32.6% |
 
 ## 分层命中率（view 级计权，Wilson 95% CI；min_sample=30；binomial_p=事件级双侧检验）
 
 | layer | direction | window | segment | n_view | hit_rate | CI | binomial_p | 样本不足 |
 |---|---|---|---|---|---|---|---|---|
-| ok | all | 1 | all | 127 | 63.0% | [54.3%,70.9%] | 0.269 |  |
-| ok | all | 1 | train | 20 | 65.0% | [43.3%,81.9%] | 0.160 | ⚠不足 |
+| ok | all | 1 | all | 143 | 60.8% | [52.7%,68.5%] | 0.614 |  |
+| ok | all | 1 | train | 36 | 55.6% | [39.6%,70.5%] | 0.018 |  |
 | ok | all | 1 | test | 107 | 62.6% | [53.2%,71.2%] | 0.079 |  |
 | ok | all | 1 | roll | 9 | 66.7% | [35.4%,87.9%] | 0.346 | ⚠不足 |
-| ok | all | 3 | all | 127 | 75.6% | [67.4%,82.2%] | 0.771 |  |
-| ok | all | 3 | train | 20 | 60.0% | [38.7%,78.1%] | 0.160 | ⚠不足 |
+| ok | all | 3 | all | 143 | 71.3% | [63.4%,78.1%] | 0.401 |  |
+| ok | all | 3 | train | 36 | 50.0% | [34.5%,65.5%] | 0.018 |  |
 | ok | all | 3 | test | 107 | 78.5% | [69.8%,85.2%] | 0.802 |  |
 | ok | all | 3 | roll | 9 | 66.7% | [35.4%,87.9%] | 0.346 | ⚠不足 |
-| ok | all | 5 | all | 124 | 62.1% | [53.3%,70.2%] | 0.240 |  |
-| ok | all | 5 | train | 20 | 55.0% | [34.2%,74.2%] | 0.019 | ⚠不足 |
-| ok | all | 5 | test | 104 | 63.5% | [53.9%,72.1%] | 0.027 |  |
-| ok | all | 5 | roll | 6 | 66.7% | [30.0%,90.3%] | 0.781 | ⚠不足 |
-| ok | all | 10 | all | 121 | 62.8% | [53.9%,70.9%] | 0.108 |  |
-| ok | all | 10 | train | 20 | 60.0% | [38.7%,78.1%] | 0.008 | ⚠不足 |
-| ok | all | 10 | test | 101 | 63.4% | [53.6%,72.1%] | 0.520 |  |
-| ok | all | 10 | roll | 3 | 66.7% | [20.8%,93.8%] | 1.000 | ⚠不足 |
-| ok | all | 20 | all | 112 | 43.8% | [34.9%,53.0%] | 0.002 |  |
-| ok | all | 20 | train | 20 | 45.0% | [25.8%,65.8%] | 0.003 | ⚠不足 |
-| ok | all | 20 | test | 92 | 43.5% | [33.8%,53.7%] | 0.039 |  |
-| ok | bullish | 1 | all | 76 | 71.0% | [60.0%,80.0%] | 0.018 |  |
-| ok | bullish | 1 | train | 13 | 61.5% | [35.5%,82.3%] | 0.095 | ⚠不足 |
+| ok | all | 5 | all | 143 | 59.4% | [51.2%,67.1%] | 0.467 |  |
+| ok | all | 5 | train | 36 | 50.0% | [34.5%,65.5%] | 0.004 |  |
+| ok | all | 5 | test | 107 | 62.6% | [53.2%,71.2%] | 0.024 |  |
+| ok | all | 5 | roll | 9 | 55.6% | [26.7%,81.1%] | 0.637 | ⚠不足 |
+| ok | all | 10 | all | 143 | 60.1% | [51.9%,67.8%] | 0.083 |  |
+| ok | all | 10 | train | 36 | 52.8% | [37.0%,68.0%] | 0.009 |  |
+| ok | all | 10 | test | 107 | 62.6% | [53.2%,71.2%] | 0.530 |  |
+| ok | all | 10 | roll | 9 | 55.6% | [26.7%,81.1%] | 1.000 | ⚠不足 |
+| ok | all | 20 | all | 143 | 46.2% | [38.2%,54.3%] | 0.006 |  |
+| ok | all | 20 | train | 36 | 47.2% | [32.0%,63.0%] | 0.018 |  |
+| ok | all | 20 | test | 107 | 45.8% | [36.7%,55.2%] | 0.060 |  |
+| ok | all | 20 | roll | 9 | 66.7% | [35.4%,87.9%] | 1.000 | ⚠不足 |
+| ok | bullish | 1 | all | 84 | 70.2% | [59.8%,79.0%] | 0.048 |  |
+| ok | bullish | 1 | train | 21 | 61.9% | [40.9%,79.2%] | 0.047 | ⚠不足 |
 | ok | bullish | 1 | test | 63 | 73.0% | [61.0%,82.4%] | 0.001 |  |
 | ok | bullish | 1 | roll | 4 | 100.0% | [51.0%,100.0%] | 0.034 | ⚠不足 |
-| ok | bullish | 3 | all | 76 | 80.3% | [70.0%,87.7%] | 0.040 |  |
-| ok | bullish | 3 | train | 13 | 61.5% | [35.5%,82.3%] | 0.353 | ⚠不足 |
+| ok | bullish | 3 | all | 84 | 78.6% | [68.7%,86.0%] | 0.068 |  |
+| ok | bullish | 3 | train | 21 | 61.9% | [40.9%,79.2%] | 0.286 | ⚠不足 |
 | ok | bullish | 3 | test | 63 | 84.1% | [73.2%,91.1%] | 0.008 |  |
 | ok | bullish | 3 | roll | 4 | 75.0% | [30.1%,95.4%] | 0.157 | ⚠不足 |
-| ok | bullish | 5 | all | 75 | 66.7% | [55.4%,76.3%] | 0.046 |  |
-| ok | bullish | 5 | train | 13 | 38.5% | [17.7%,64.5%] | 0.000 | ⚠不足 |
-| ok | bullish | 5 | test | 62 | 72.6% | [60.4%,82.1%] | 0.000 |  |
-| ok | bullish | 5 | roll | 3 | 66.7% | [20.8%,93.8%] | 0.655 | ⚠不足 |
-| ok | bullish | 10 | all | 73 | 54.8% | [43.4%,65.7%] | 0.000 |  |
-| ok | bullish | 10 | train | 13 | 76.9% | [49.7%,91.8%] | 0.095 | ⚠不足 |
-| ok | bullish | 10 | test | 60 | 50.0% | [37.7%,62.3%] | 0.000 |  |
-| ok | bullish | 10 | roll | 1 | 0.0% | [0.0%,79.3%] | 0.157 | ⚠不足 |
-| ok | bullish | 20 | all | 68 | 10.3% | [5.1%,19.8%] | 0.000 |  |
-| ok | bullish | 20 | train | 13 | 23.1% | [8.2%,50.3%] | 0.000 | ⚠不足 |
-| ok | bullish | 20 | test | 55 | 7.3% | [2.9%,17.3%] | 0.000 |  |
-| ok | bearish | 1 | all | 45 | 48.9% | [35.0%,63.0%] | 0.221 |  |
-| ok | bearish | 1 | train | 4 | 75.0% | [30.1%,95.4%] | 0.706 | ⚠不足 |
+| ok | bullish | 5 | all | 84 | 65.5% | [54.8%,74.8%] | 0.068 |  |
+| ok | bullish | 5 | train | 21 | 42.9% | [24.5%,63.4%] | 0.001 | ⚠不足 |
+| ok | bullish | 5 | test | 63 | 73.0% | [61.0%,82.4%] | 0.000 |  |
+| ok | bullish | 5 | roll | 4 | 75.0% | [30.1%,95.4%] | 0.157 | ⚠不足 |
+| ok | bullish | 10 | all | 84 | 58.3% | [47.6%,68.3%] | 0.000 |  |
+| ok | bullish | 10 | train | 21 | 76.2% | [54.9%,89.4%] | 0.446 | ⚠不足 |
+| ok | bullish | 10 | test | 63 | 52.4% | [40.3%,64.2%] | 0.000 |  |
+| ok | bullish | 10 | roll | 4 | 75.0% | [30.1%,95.4%] | 0.157 | ⚠不足 |
+| ok | bullish | 20 | all | 84 | 20.2% | [13.0%,30.0%] | 0.000 |  |
+| ok | bullish | 20 | train | 21 | 42.9% | [24.5%,63.4%] | 0.009 | ⚠不足 |
+| ok | bullish | 20 | test | 63 | 12.7% | [6.6%,23.1%] | 0.000 |  |
+| ok | bullish | 20 | roll | 4 | 75.0% | [30.1%,95.4%] | 1.000 | ⚠不足 |
+| ok | bearish | 1 | all | 47 | 46.8% | [33.3%,60.8%] | 0.162 |  |
+| ok | bearish | 1 | train | 6 | 50.0% | [18.8%,81.2%] | 0.739 | ⚠不足 |
 | ok | bearish | 1 | test | 41 | 46.3% | [32.1%,61.3%] | 0.174 |  |
 | ok | bearish | 1 | roll | 5 | 40.0% | [11.8%,76.9%] | 0.527 | ⚠不足 |
-| ok | bearish | 3 | all | 45 | 68.9% | [54.3%,80.5%] | 0.004 |  |
-| ok | bearish | 3 | train | 4 | 50.0% | [15.0%,85.0%] | 0.257 | ⚠不足 |
+| ok | bearish | 3 | all | 47 | 66.0% | [51.7%,77.8%] | 0.002 |  |
+| ok | bearish | 3 | train | 6 | 33.3% | [9.7%,70.0%] | 0.096 | ⚠不足 |
 | ok | bearish | 3 | test | 41 | 70.7% | [55.5%,82.4%] | 0.006 |  |
 | ok | bearish | 3 | roll | 5 | 60.0% | [23.1%,88.2%] | 1.000 | ⚠不足 |
-| ok | bearish | 5 | all | 43 | 53.5% | [38.9%,67.5%] | 0.635 |  |
-| ok | bearish | 5 | train | 4 | 100.0% | [51.0%,100.0%] | 0.059 | ⚠不足 |
-| ok | bearish | 5 | test | 39 | 48.7% | [33.9%,63.8%] | 0.327 |  |
-| ok | bearish | 5 | roll | 3 | 66.7% | [20.8%,93.8%] | 1.000 | ⚠不足 |
-| ok | bearish | 10 | all | 42 | 81.0% | [66.7%,90.0%] | 0.000 |  |
-| ok | bearish | 10 | train | 4 | 25.0% | [4.6%,69.9%] | 0.059 | ⚠不足 |
-| ok | bearish | 10 | test | 38 | 86.8% | [72.7%,94.2%] | 0.000 |  |
-| ok | bearish | 10 | roll | 2 | 100.0% | [34.2%,100.0%] | 0.317 | ⚠不足 |
-| ok | bearish | 20 | all | 38 | 97.4% | [86.5%,99.5%] | 0.000 |  |
-| ok | bearish | 20 | train | 4 | 100.0% | [51.0%,100.0%] | 0.059 | ⚠不足 |
-| ok | bearish | 20 | test | 34 | 97.1% | [85.1%,99.5%] | 0.000 |  |
-| ok | risk | 1 | all | 6 | 66.7% | [30.0%,90.3%] | 0.739 | ⚠不足 |
-| ok | risk | 1 | train | 3 | 66.7% | [20.8%,93.8%] | 0.655 | ⚠不足 |
+| ok | bearish | 5 | all | 47 | 48.9% | [35.3%,62.8%] | 0.401 |  |
+| ok | bearish | 5 | train | 6 | 66.7% | [30.0%,90.3%] | 0.317 | ⚠不足 |
+| ok | bearish | 5 | test | 41 | 46.3% | [32.1%,61.3%] | 0.244 |  |
+| ok | bearish | 5 | roll | 5 | 40.0% | [11.8%,76.9%] | 0.527 | ⚠不足 |
+| ok | bearish | 10 | all | 47 | 72.3% | [58.2%,83.1%] | 0.000 |  |
+| ok | bearish | 10 | train | 6 | 16.7% | [3.0%,56.4%] | 0.020 | ⚠不足 |
+| ok | bearish | 10 | test | 41 | 80.5% | [66.0%,89.8%] | 0.000 |  |
+| ok | bearish | 10 | roll | 5 | 40.0% | [11.8%,76.9%] | 0.206 | ⚠不足 |
+| ok | bearish | 20 | all | 47 | 89.4% | [77.4%,95.4%] | 0.000 |  |
+| ok | bearish | 20 | train | 6 | 66.7% | [30.0%,90.3%] | 0.317 | ⚠不足 |
+| ok | bearish | 20 | test | 41 | 92.7% | [80.6%,97.5%] | 0.000 |  |
+| ok | bearish | 20 | roll | 5 | 60.0% | [23.1%,88.2%] | 1.000 | ⚠不足 |
+| ok | risk | 1 | all | 12 | 50.0% | [25.4%,74.6%] | 0.467 | ⚠不足 |
+| ok | risk | 1 | train | 9 | 44.4% | [18.9%,73.3%] | 0.166 | ⚠不足 |
 | ok | risk | 1 | test | 3 | 66.7% | [20.8%,93.8%] | 0.317 | ⚠不足 |
-| ok | risk | 3 | all | 6 | 66.7% | [30.0%,90.3%] | 0.739 | ⚠不足 |
-| ok | risk | 3 | train | 3 | 66.7% | [20.8%,93.8%] | 0.655 | ⚠不足 |
+| ok | risk | 3 | all | 12 | 41.7% | [19.3%,68.0%] | 0.090 | ⚠不足 |
+| ok | risk | 3 | train | 9 | 33.3% | [12.1%,64.6%] | 0.052 | ⚠不足 |
 | ok | risk | 3 | test | 3 | 66.7% | [20.8%,93.8%] | 1.000 | ⚠不足 |
-| ok | risk | 5 | all | 6 | 66.7% | [30.0%,90.3%] | 0.739 | ⚠不足 |
-| ok | risk | 5 | train | 3 | 66.7% | [20.8%,93.8%] | 0.655 | ⚠不足 |
+| ok | risk | 5 | all | 12 | 58.3% | [31.9%,80.7%] | 0.467 | ⚠不足 |
+| ok | risk | 5 | train | 9 | 55.6% | [26.7%,81.1%] | 0.405 | ⚠不足 |
 | ok | risk | 5 | test | 3 | 66.7% | [20.8%,93.8%] | 1.000 | ⚠不足 |
-| ok | risk | 10 | all | 6 | 33.3% | [9.7%,70.0%] | 0.317 | ⚠不足 |
-| ok | risk | 10 | train | 3 | 33.3% | [6.2%,79.2%] | 0.180 | ⚠不足 |
+| ok | risk | 10 | all | 12 | 25.0% | [8.9%,53.2%] | 0.029 | ⚠不足 |
+| ok | risk | 10 | train | 9 | 22.2% | [6.3%,54.7%] | 0.013 | ⚠不足 |
 | ok | risk | 10 | test | 3 | 33.3% | [6.2%,79.2%] | 1.000 | ⚠不足 |
-| ok | risk | 20 | all | 6 | 83.3% | [43.6%,97.0%] | 0.317 | ⚠不足 |
-| ok | risk | 20 | train | 3 | 66.7% | [20.8%,93.8%] | 0.655 | ⚠不足 |
+| ok | risk | 20 | all | 12 | 58.3% | [31.9%,80.7%] | 0.808 | ⚠不足 |
+| ok | risk | 20 | train | 9 | 44.4% | [18.9%,73.3%] | 0.166 | ⚠不足 |
 | ok | risk | 20 | test | 3 | 100.0% | [43.9%,100.0%] | 0.045 | ⚠不足 |
-| partial_anchor | all | 1 | all | 49 | 32.6% | [21.2%,46.6%] | 0.000 |  |
-| partial_anchor | all | 1 | train | 24 | 25.0% | [12.0%,44.9%] | 0.000 | ⚠不足 |
+| partial_anchor | all | 1 | all | 68 | 41.2% | [30.3%,53.0%] | 0.000 |  |
+| partial_anchor | all | 1 | train | 43 | 41.9% | [28.4%,56.7%] | 0.007 |  |
 | partial_anchor | all | 1 | test | 25 | 40.0% | [23.4%,59.3%] | 0.002 | ⚠不足 |
 | partial_anchor | all | 1 | roll | 3 | 33.3% | [6.2%,79.2%] | 0.020 | ⚠不足 |
-| partial_anchor | all | 3 | all | 49 | 61.2% | [47.2%,73.6%] | 0.765 |  |
-| partial_anchor | all | 3 | train | 24 | 62.5% | [42.7%,78.8%] | 0.879 | ⚠不足 |
+| partial_anchor | all | 3 | all | 68 | 57.4% | [45.5%,68.4%] | 0.930 |  |
+| partial_anchor | all | 3 | train | 43 | 55.8% | [41.1%,69.6%] | 0.726 |  |
 | partial_anchor | all | 3 | test | 25 | 60.0% | [40.7%,76.6%] | 0.599 | ⚠不足 |
 | partial_anchor | all | 3 | roll | 3 | 66.7% | [20.8%,93.8%] | 0.317 | ⚠不足 |
-| partial_anchor | all | 5 | all | 49 | 51.0% | [37.5%,64.4%] | 0.091 |  |
-| partial_anchor | all | 5 | train | 24 | 62.5% | [42.7%,78.8%] | 0.647 | ⚠不足 |
+| partial_anchor | all | 5 | all | 68 | 48.5% | [37.0%,60.2%] | 0.138 |  |
+| partial_anchor | all | 5 | train | 43 | 53.5% | [38.9%,67.5%] | 0.726 |  |
 | partial_anchor | all | 5 | test | 25 | 40.0% | [23.4%,59.3%] | 0.009 | ⚠不足 |
 | partial_anchor | all | 5 | roll | 3 | 66.7% | [20.8%,93.8%] | 0.739 | ⚠不足 |
-| partial_anchor | all | 10 | all | 49 | 57.1% | [43.3%,70.0%] | 0.196 |  |
-| partial_anchor | all | 10 | train | 24 | 66.7% | [46.7%,82.0%] | 0.647 | ⚠不足 |
+| partial_anchor | all | 10 | all | 68 | 57.4% | [45.5%,68.4%] | 0.432 |  |
+| partial_anchor | all | 10 | train | 43 | 62.8% | [47.9%,75.6%] | 0.413 |  |
 | partial_anchor | all | 10 | test | 25 | 48.0% | [30.0%,66.5%] | 0.036 | ⚠不足 |
 | partial_anchor | all | 10 | roll | 3 | 66.7% | [20.8%,93.8%] | 0.020 | ⚠不足 |
-| partial_anchor | all | 20 | all | 40 | 50.0% | [35.2%,64.8%] | 0.020 |  |
-| partial_anchor | all | 20 | train | 24 | 58.3% | [38.8%,75.5%] | 0.446 | ⚠不足 |
-| partial_anchor | all | 20 | test | 16 | 37.5% | [18.5%,61.4%] | 0.009 | ⚠不足 |
-| partial_anchor | bullish | 1 | all | 30 | 33.3% | [19.2%,51.2%] | 0.000 |  |
-| partial_anchor | bullish | 1 | train | 14 | 28.6% | [11.7%,54.6%] | 0.002 | ⚠不足 |
+| partial_anchor | all | 20 | all | 68 | 51.5% | [39.8%,62.9%] | 0.044 |  |
+| partial_anchor | all | 20 | train | 43 | 55.8% | [41.1%,69.6%] | 0.558 |  |
+| partial_anchor | all | 20 | test | 25 | 44.0% | [26.7%,62.9%] | 0.018 | ⚠不足 |
+| partial_anchor | all | 20 | roll | 3 | 100.0% | [43.9%,100.0%] | 0.096 | ⚠不足 |
+| partial_anchor | bullish | 1 | all | 41 | 39.0% | [25.7%,54.3%] | 0.001 |  |
+| partial_anchor | bullish | 1 | train | 25 | 40.0% | [23.4%,59.3%] | 0.027 | ⚠不足 |
 | partial_anchor | bullish | 1 | test | 16 | 37.5% | [18.5%,61.4%] | 0.009 | ⚠不足 |
 | partial_anchor | bullish | 1 | roll | 1 | 100.0% | [20.6%,100.0%] | 0.317 | ⚠不足 |
-| partial_anchor | bullish | 3 | all | 30 | 56.7% | [39.2%,72.6%] | 0.211 |  |
-| partial_anchor | bullish | 3 | train | 14 | 50.0% | [26.8%,73.2%] | 0.117 | ⚠不足 |
+| partial_anchor | bullish | 3 | all | 41 | 53.7% | [38.8%,67.9%] | 0.258 |  |
+| partial_anchor | bullish | 3 | train | 25 | 48.0% | [30.0%,66.5%] | 0.206 | ⚠不足 |
 | partial_anchor | bullish | 3 | test | 16 | 62.5% | [38.6%,81.5%] | 0.746 | ⚠不足 |
 | partial_anchor | bullish | 3 | roll | 1 | 100.0% | [20.6%,100.0%] | 0.317 | ⚠不足 |
-| partial_anchor | bullish | 5 | all | 30 | 40.0% | [24.6%,57.7%] | 0.003 |  |
-| partial_anchor | bullish | 5 | train | 14 | 57.1% | [32.6%,78.6%] | 0.433 | ⚠不足 |
+| partial_anchor | bullish | 5 | all | 41 | 36.6% | [23.6%,51.9%] | 0.002 |  |
+| partial_anchor | bullish | 5 | train | 25 | 44.0% | [26.7%,62.9%] | 0.206 | ⚠不足 |
 | partial_anchor | bullish | 5 | test | 16 | 25.0% | [10.2%,49.5%] | 0.001 | ⚠不足 |
 | partial_anchor | bullish | 5 | roll | 1 | 0.0% | [0.0%,79.3%] | 0.317 | ⚠不足 |
-| partial_anchor | bullish | 10 | all | 30 | 50.0% | [33.1%,66.8%] | 0.001 |  |
-| partial_anchor | bullish | 10 | train | 14 | 78.6% | [52.4%,92.4%] | 0.695 | ⚠不足 |
+| partial_anchor | bullish | 10 | all | 41 | 51.2% | [36.5%,65.8%] | 0.013 |  |
+| partial_anchor | bullish | 10 | train | 25 | 68.0% | [48.4%,82.8%] | 0.343 | ⚠不足 |
 | partial_anchor | bullish | 10 | test | 16 | 25.0% | [10.2%,49.5%] | 0.000 | ⚠不足 |
 | partial_anchor | bullish | 10 | roll | 1 | 0.0% | [0.0%,79.3%] | 0.317 | ⚠不足 |
-| partial_anchor | bullish | 20 | all | 25 | 36.0% | [20.2%,55.5%] | 0.000 | ⚠不足 |
-| partial_anchor | bullish | 20 | train | 14 | 57.1% | [32.6%,78.6%] | 0.050 | ⚠不足 |
-| partial_anchor | bullish | 20 | test | 11 | 9.1% | [1.6%,37.7%] | 0.000 | ⚠不足 |
-| partial_anchor | bearish | 1 | all | 18 | 33.3% | [16.3%,56.2%] | 0.001 | ⚠不足 |
-| partial_anchor | bearish | 1 | train | 10 | 20.0% | [5.7%,51.0%] | 0.002 | ⚠不足 |
+| partial_anchor | bullish | 20 | all | 41 | 36.6% | [23.6%,51.9%] | 0.000 |  |
+| partial_anchor | bullish | 20 | train | 25 | 52.0% | [33.5%,70.0%] | 0.206 | ⚠不足 |
+| partial_anchor | bullish | 20 | test | 16 | 12.5% | [3.5%,36.0%] | 0.000 | ⚠不足 |
+| partial_anchor | bullish | 20 | roll | 1 | 100.0% | [20.6%,100.0%] | 0.317 | ⚠不足 |
+| partial_anchor | bearish | 1 | all | 23 | 43.5% | [25.6%,63.2%] | 0.011 | ⚠不足 |
+| partial_anchor | bearish | 1 | train | 15 | 40.0% | [19.8%,64.2%] | 0.050 | ⚠不足 |
 | partial_anchor | bearish | 1 | test | 8 | 50.0% | [21.5%,78.5%] | 0.108 | ⚠不足 |
 | partial_anchor | bearish | 1 | roll | 2 | 0.0% | [0.0%,65.8%] | 0.005 | ⚠不足 |
-| partial_anchor | bearish | 3 | all | 18 | 72.2% | [49.1%,87.5%] | 0.182 | ⚠不足 |
-| partial_anchor | bearish | 3 | train | 10 | 80.0% | [49.0%,94.3%] | 0.029 | ⚠不足 |
+| partial_anchor | bearish | 3 | all | 23 | 69.6% | [49.1%,84.4%] | 0.101 | ⚠不足 |
+| partial_anchor | bearish | 3 | train | 15 | 73.3% | [48.0%,89.1%] | 0.019 | ⚠不足 |
 | partial_anchor | bearish | 3 | test | 8 | 62.5% | [30.6%,86.3%] | 0.819 | ⚠不足 |
 | partial_anchor | bearish | 3 | roll | 2 | 50.0% | [9.4%,90.5%] | 0.157 | ⚠不足 |
-| partial_anchor | bearish | 5 | all | 18 | 72.2% | [49.1%,87.5%] | 0.182 | ⚠不足 |
-| partial_anchor | bearish | 5 | train | 10 | 70.0% | [39.7%,89.2%] | 0.090 | ⚠不足 |
+| partial_anchor | bearish | 5 | all | 23 | 73.9% | [53.5%,87.5%] | 0.053 | ⚠不足 |
+| partial_anchor | bearish | 5 | train | 15 | 73.3% | [48.0%,89.1%] | 0.019 | ⚠不足 |
 | partial_anchor | bearish | 5 | test | 8 | 75.0% | [40.9%,92.8%] | 0.819 | ⚠不足 |
 | partial_anchor | bearish | 5 | roll | 2 | 100.0% | [34.2%,100.0%] | 0.479 | ⚠不足 |
-| partial_anchor | bearish | 10 | all | 18 | 72.2% | [49.1%,87.5%] | 0.020 | ⚠不足 |
-| partial_anchor | bearish | 10 | train | 10 | 50.0% | [23.7%,76.3%] | 0.808 | ⚠不足 |
+| partial_anchor | bearish | 10 | all | 23 | 69.6% | [49.1%,84.4%] | 0.025 | ⚠不足 |
+| partial_anchor | bearish | 10 | train | 15 | 53.3% | [30.1%,75.2%] | 0.695 | ⚠不足 |
 | partial_anchor | bearish | 10 | test | 8 | 100.0% | [67.6%,100.0%] | 0.003 | ⚠不足 |
 | partial_anchor | bearish | 10 | roll | 2 | 100.0% | [34.2%,100.0%] | 0.005 | ⚠不足 |
-| partial_anchor | bearish | 20 | all | 14 | 71.4% | [45.4%,88.3%] | 0.006 | ⚠不足 |
-| partial_anchor | bearish | 20 | train | 10 | 60.0% | [31.3%,83.2%] | 0.225 | ⚠不足 |
-| partial_anchor | bearish | 20 | test | 4 | 100.0% | [51.0%,100.0%] | 0.003 | ⚠不足 |
-| partial_anchor | risk | 1 | all | 1 | 0.0% | [0.0%,79.3%] | 0.317 | ⚠不足 |
+| partial_anchor | bearish | 20 | all | 23 | 73.9% | [53.5%,87.5%] | 0.002 | ⚠不足 |
+| partial_anchor | bearish | 20 | train | 15 | 60.0% | [35.8%,80.2%] | 0.239 | ⚠不足 |
+| partial_anchor | bearish | 20 | test | 8 | 100.0% | [67.6%,100.0%] | 0.001 | ⚠不足 |
+| partial_anchor | bearish | 20 | roll | 2 | 100.0% | [34.2%,100.0%] | 0.157 | ⚠不足 |
+| partial_anchor | risk | 1 | all | 4 | 50.0% | [15.0%,85.0%] | 1.000 | ⚠不足 |
+| partial_anchor | risk | 1 | train | 3 | 66.7% | [20.8%,93.8%] | 0.706 | ⚠不足 |
 | partial_anchor | risk | 1 | test | 1 | 0.0% | [0.0%,79.3%] | 0.317 | ⚠不足 |
-| partial_anchor | risk | 3 | all | 1 | 0.0% | [0.0%,79.3%] | 0.317 | ⚠不足 |
+| partial_anchor | risk | 3 | all | 4 | 25.0% | [4.6%,69.9%] | 0.479 | ⚠不足 |
+| partial_anchor | risk | 3 | train | 3 | 33.3% | [6.2%,79.2%] | 0.706 | ⚠不足 |
 | partial_anchor | risk | 3 | test | 1 | 0.0% | [0.0%,79.3%] | 0.317 | ⚠不足 |
-| partial_anchor | risk | 5 | all | 1 | 0.0% | [0.0%,79.3%] | 0.317 | ⚠不足 |
+| partial_anchor | risk | 5 | all | 4 | 25.0% | [4.6%,69.9%] | 0.479 | ⚠不足 |
+| partial_anchor | risk | 5 | train | 3 | 33.3% | [6.2%,79.2%] | 0.706 | ⚠不足 |
 | partial_anchor | risk | 5 | test | 1 | 0.0% | [0.0%,79.3%] | 0.317 | ⚠不足 |
-| partial_anchor | risk | 10 | all | 1 | 0.0% | [0.0%,79.3%] | 0.317 | ⚠不足 |
+| partial_anchor | risk | 10 | all | 4 | 50.0% | [15.0%,85.0%] | 0.479 | ⚠不足 |
+| partial_anchor | risk | 10 | train | 3 | 66.7% | [20.8%,93.8%] | 0.706 | ⚠不足 |
 | partial_anchor | risk | 10 | test | 1 | 0.0% | [0.0%,79.3%] | 0.317 | ⚠不足 |
-| partial_anchor | risk | 20 | all | 1 | 100.0% | [20.6%,100.0%] | 0.317 | ⚠不足 |
+| partial_anchor | risk | 20 | all | 4 | 75.0% | [30.1%,95.4%] | 0.479 | ⚠不足 |
+| partial_anchor | risk | 20 | train | 3 | 66.7% | [20.8%,93.8%] | 0.257 | ⚠不足 |
 | partial_anchor | risk | 20 | test | 1 | 100.0% | [20.6%,100.0%] | 0.317 | ⚠不足 |
-| template_only | all | 1 | all | 396 | 58.6% | [53.7%,63.3%] | 0.176 |  |
-| template_only | all | 1 | train | 155 | 64.5% | [56.7%,71.6%] | 0.007 |  |
+| template_only | all | 1 | all | 554 | 56.7% | [52.5%,60.8%] | 0.371 |  |
+| template_only | all | 1 | train | 313 | 58.1% | [52.6%,63.5%] | 0.281 |  |
 | template_only | all | 1 | test | 241 | 54.8% | [48.5%,60.9%] | 0.864 |  |
 | template_only | all | 1 | roll | 64 | 60.9% | [48.7%,71.9%] | 0.303 |  |
-| template_only | all | 3 | all | 388 | 64.4% | [59.6%,69.0%] | 0.914 |  |
-| template_only | all | 3 | train | 155 | 62.6% | [54.7%,69.8%] | 0.161 |  |
-| template_only | all | 3 | test | 233 | 65.7% | [59.4%,71.5%] | 0.406 |  |
-| template_only | all | 3 | roll | 56 | 55.4% | [42.4%,67.6%] | 0.405 |  |
-| template_only | all | 5 | all | 381 | 53.0% | [48.0%,58.0%] | 0.584 |  |
-| template_only | all | 5 | train | 155 | 57.4% | [49.5%,64.9%] | 0.524 |  |
-| template_only | all | 5 | test | 226 | 50.0% | [43.5%,56.5%] | 0.266 |  |
-| template_only | all | 5 | roll | 49 | 55.1% | [41.3%,68.2%] | 0.920 |  |
-| template_only | all | 10 | all | 379 | 58.8% | [53.8%,63.7%] | 0.464 |  |
-| template_only | all | 10 | train | 155 | 66.5% | [58.7%,73.4%] | 0.015 |  |
-| template_only | all | 10 | test | 224 | 53.6% | [47.0%,60.0%] | 0.009 |  |
-| template_only | all | 10 | roll | 47 | 59.6% | [45.3%,72.4%] | 0.536 |  |
-| template_only | all | 20 | all | 301 | 47.5% | [41.9%,53.1%] | 0.006 |  |
-| template_only | all | 20 | train | 155 | 58.1% | [50.2%,65.5%] | 0.251 |  |
-| template_only | all | 20 | test | 146 | 36.3% | [28.9%,44.4%] | 0.000 |  |
-| template_only | bullish | 1 | all | 243 | 56.0% | [49.7%,62.1%] | 0.710 |  |
-| template_only | bullish | 1 | train | 97 | 63.9% | [54.0%,72.8%] | 0.069 |  |
+| template_only | all | 3 | all | 554 | 64.6% | [60.6%,68.5%] | 0.905 |  |
+| template_only | all | 3 | train | 313 | 63.3% | [57.8%,68.4%] | 0.362 |  |
+| template_only | all | 3 | test | 241 | 66.4% | [60.2%,72.1%] | 0.439 |  |
+| template_only | all | 3 | roll | 64 | 59.4% | [47.1%,70.5%] | 0.493 |  |
+| template_only | all | 5 | all | 554 | 55.4% | [51.2%,59.5%] | 0.551 |  |
+| template_only | all | 5 | train | 313 | 58.8% | [53.3%,64.1%] | 0.804 |  |
+| template_only | all | 5 | test | 241 | 51.0% | [44.8%,57.3%] | 0.264 |  |
+| template_only | all | 5 | roll | 64 | 57.8% | [45.6%,69.1%] | 0.864 |  |
+| template_only | all | 10 | all | 554 | 57.4% | [53.2%,61.5%] | 0.591 |  |
+| template_only | all | 10 | train | 313 | 59.7% | [54.2%,65.0%] | 0.097 |  |
+| template_only | all | 10 | test | 241 | 54.4% | [48.0%,60.5%] | 0.013 |  |
+| template_only | all | 10 | roll | 64 | 60.9% | [48.7%,71.9%] | 0.607 |  |
+| template_only | all | 20 | all | 554 | 55.4% | [51.2%,59.5%] | 0.765 |  |
+| template_only | all | 20 | train | 313 | 59.4% | [53.9%,64.7%] | 0.001 |  |
+| template_only | all | 20 | test | 241 | 50.2% | [43.9%,56.5%] | 0.003 |  |
+| template_only | all | 20 | roll | 64 | 82.8% | [71.8%,90.1%] | 0.059 |  |
+| template_only | bullish | 1 | all | 341 | 54.2% | [48.9%,59.5%] | 0.034 |  |
+| template_only | bullish | 1 | train | 195 | 56.9% | [49.9%,63.7%] | 0.183 |  |
 | template_only | bullish | 1 | test | 146 | 50.7% | [42.7%,58.7%] | 0.092 |  |
 | template_only | bullish | 1 | roll | 35 | 60.0% | [43.6%,74.5%] | 0.279 |  |
-| template_only | bullish | 3 | all | 237 | 59.5% | [53.1%,65.5%] | 0.451 |  |
-| template_only | bullish | 3 | train | 97 | 57.7% | [47.8%,67.1%] | 0.508 |  |
-| template_only | bullish | 3 | test | 140 | 60.7% | [52.4%,68.4%] | 0.169 |  |
-| template_only | bullish | 3 | roll | 29 | 31.0% | [17.3%,49.2%] | 0.005 | ⚠不足 |
-| template_only | bullish | 5 | all | 234 | 46.6% | [40.3%,53.0%] | 0.000 |  |
-| template_only | bullish | 5 | train | 97 | 55.7% | [45.8%,65.1%] | 0.321 |  |
-| template_only | bullish | 5 | test | 137 | 40.2% | [32.3%,48.5%] | 0.000 |  |
-| template_only | bullish | 5 | roll | 26 | 19.2% | [8.5%,37.9%] | 0.000 | ⚠不足 |
-| template_only | bullish | 10 | all | 233 | 54.5% | [48.1%,60.8%] | 0.000 |  |
-| template_only | bullish | 10 | train | 97 | 79.4% | [70.3%,86.2%] | 0.002 |  |
-| template_only | bullish | 10 | test | 136 | 36.8% | [29.1%,45.1%] | 0.000 |  |
-| template_only | bullish | 10 | roll | 25 | 36.0% | [20.2%,55.5%] | 0.000 | ⚠不足 |
-| template_only | bullish | 20 | all | 191 | 34.0% | [27.7%,41.0%] | 0.000 |  |
-| template_only | bullish | 20 | train | 97 | 59.8% | [49.8%,69.0%] | 0.508 |  |
-| template_only | bullish | 20 | test | 94 | 7.4% | [3.6%,14.6%] | 0.000 |  |
-| template_only | bearish | 1 | all | 144 | 63.2% | [55.1%,70.6%] | 0.006 |  |
-| template_only | bearish | 1 | train | 58 | 65.5% | [52.7%,76.4%] | 0.045 |  |
+| template_only | bullish | 3 | all | 341 | 63.3% | [58.1%,68.3%] | 0.597 |  |
+| template_only | bullish | 3 | train | 195 | 64.1% | [57.2%,70.5%] | 0.066 |  |
+| template_only | bullish | 3 | test | 146 | 62.3% | [54.2%,69.8%] | 0.217 |  |
+| template_only | bullish | 3 | roll | 35 | 42.9% | [28.0%,59.1%] | 0.022 |  |
+| template_only | bullish | 5 | all | 341 | 54.0% | [48.6%,59.2%] | 0.082 |  |
+| template_only | bullish | 5 | train | 195 | 61.5% | [54.5%,68.1%] | 0.539 |  |
+| template_only | bullish | 5 | test | 146 | 43.8% | [36.0%,51.9%] | 0.001 |  |
+| template_only | bullish | 5 | roll | 35 | 40.0% | [25.6%,56.4%] | 0.001 |  |
+| template_only | bullish | 10 | all | 341 | 56.9% | [51.6%,62.0%] | 0.010 |  |
+| template_only | bullish | 10 | train | 195 | 68.7% | [61.9%,74.8%] | 0.000 |  |
+| template_only | bullish | 10 | test | 146 | 41.1% | [33.4%,49.2%] | 0.000 |  |
+| template_only | bullish | 10 | roll | 35 | 54.3% | [38.2%,69.5%] | 0.185 |  |
+| template_only | bullish | 20 | all | 341 | 47.2% | [42.0%,52.5%] | 0.000 |  |
+| template_only | bullish | 20 | train | 195 | 63.1% | [56.1%,69.5%] | 0.000 |  |
+| template_only | bullish | 20 | test | 146 | 26.0% | [19.6%,33.7%] | 0.000 |  |
+| template_only | bullish | 20 | roll | 35 | 80.0% | [64.1%,90.0%] | 0.904 |  |
+| template_only | bearish | 1 | all | 194 | 61.9% | [54.9%,68.4%] | 0.077 |  |
+| template_only | bearish | 1 | train | 108 | 62.0% | [52.6%,70.6%] | 0.607 |  |
 | template_only | bearish | 1 | test | 86 | 61.6% | [51.1%,71.2%] | 0.052 |  |
 | template_only | bearish | 1 | roll | 25 | 64.0% | [44.5%,79.8%] | 0.362 | ⚠不足 |
-| template_only | bearish | 3 | all | 142 | 72.5% | [64.7%,79.2%] | 0.389 |  |
-| template_only | bearish | 3 | train | 58 | 70.7% | [58.0%,80.8%] | 0.162 |  |
-| template_only | bearish | 3 | test | 84 | 73.8% | [63.5%,82.0%] | 0.944 |  |
-| template_only | bearish | 3 | roll | 23 | 82.6% | [62.9%,93.0%] | 0.102 | ⚠不足 |
-| template_only | bearish | 5 | all | 139 | 62.6% | [54.3%,70.2%] | 0.001 |  |
-| template_only | bearish | 5 | train | 58 | 60.3% | [47.5%,71.9%] | 0.028 |  |
-| template_only | bearish | 5 | test | 81 | 64.2% | [53.3%,73.8%] | 0.010 |  |
-| template_only | bearish | 5 | roll | 20 | 95.0% | [76.4%,99.1%] | 0.000 | ⚠不足 |
-| template_only | bearish | 10 | all | 138 | 65.9% | [57.7%,73.3%] | 0.000 |  |
-| template_only | bearish | 10 | train | 58 | 44.8% | [32.8%,57.6%] | 1.000 |  |
-| template_only | bearish | 10 | test | 80 | 81.2% | [71.3%,88.3%] | 0.000 |  |
-| template_only | bearish | 10 | roll | 19 | 84.2% | [62.4%,94.5%] | 0.000 | ⚠不足 |
-| template_only | bearish | 20 | all | 107 | 72.0% | [62.8%,79.6%] | 0.000 |  |
-| template_only | bearish | 20 | train | 58 | 55.2% | [42.4%,67.2%] | 0.009 |  |
-| template_only | bearish | 20 | test | 49 | 91.8% | [80.8%,96.8%] | 0.000 |  |
-| template_only | risk | 1 | all | 9 | 55.6% | [26.7%,81.1%] | 0.617 | ⚠不足 |
+| template_only | bearish | 3 | all | 194 | 67.5% | [60.7%,73.7%] | 0.650 |  |
+| template_only | bearish | 3 | train | 108 | 63.0% | [53.6%,71.5%] | 0.508 |  |
+| template_only | bearish | 3 | test | 86 | 73.3% | [63.0%,81.5%] | 1.000 |  |
+| template_only | bearish | 3 | roll | 25 | 80.0% | [60.9%,91.1%] | 0.152 | ⚠不足 |
+| template_only | bearish | 5 | all | 194 | 57.2% | [50.2%,64.0%] | 0.207 |  |
+| template_only | bearish | 5 | train | 108 | 53.7% | [44.3%,62.8%] | 0.825 |  |
+| template_only | bearish | 5 | test | 86 | 61.6% | [51.1%,71.2%] | 0.052 |  |
+| template_only | bearish | 5 | roll | 25 | 80.0% | [60.9%,91.1%] | 0.001 | ⚠不足 |
+| template_only | bearish | 10 | all | 194 | 58.8% | [51.7%,65.5%] | 0.013 |  |
+| template_only | bearish | 10 | train | 108 | 44.4% | [35.4%,53.8%] | 0.004 |  |
+| template_only | bearish | 10 | test | 86 | 76.7% | [66.8%,84.4%] | 0.000 |  |
+| template_only | bearish | 10 | roll | 25 | 68.0% | [48.4%,82.8%] | 0.051 | ⚠不足 |
+| template_only | bearish | 20 | all | 194 | 70.1% | [63.3%,76.1%] | 0.000 |  |
+| template_only | bearish | 20 | train | 108 | 53.7% | [44.3%,62.8%] | 0.941 |  |
+| template_only | bearish | 20 | test | 86 | 90.7% | [82.7%,95.2%] | 0.000 |  |
+| template_only | bearish | 20 | roll | 25 | 88.0% | [70.0%,95.8%] | 0.003 | ⚠不足 |
+| template_only | risk | 1 | all | 19 | 47.4% | [27.3%,68.3%] | 0.106 | ⚠不足 |
+| template_only | risk | 1 | train | 10 | 40.0% | [16.8%,68.7%] | 0.071 | ⚠不足 |
 | template_only | risk | 1 | test | 9 | 55.6% | [26.7%,81.1%] | 0.617 | ⚠不足 |
 | template_only | risk | 1 | roll | 4 | 50.0% | [15.0%,85.0%] | 0.157 | ⚠不足 |
-| template_only | risk | 3 | all | 9 | 66.7% | [35.4%,87.9%] | 0.317 | ⚠不足 |
+| template_only | risk | 3 | all | 19 | 57.9% | [36.3%,76.9%] | 0.858 | ⚠不足 |
+| template_only | risk | 3 | train | 10 | 50.0% | [23.7%,76.3%] | 0.197 | ⚠不足 |
 | template_only | risk | 3 | test | 9 | 66.7% | [35.4%,87.9%] | 0.317 | ⚠不足 |
 | template_only | risk | 3 | roll | 4 | 75.0% | [30.1%,95.4%] | 1.000 | ⚠不足 |
-| template_only | risk | 5 | all | 8 | 75.0% | [40.9%,92.8%] | 0.052 | ⚠不足 |
-| template_only | risk | 5 | test | 8 | 75.0% | [40.9%,92.8%] | 0.052 | ⚠不足 |
-| template_only | risk | 5 | roll | 3 | 100.0% | [43.9%,100.0%] | 0.180 | ⚠不足 |
-| template_only | risk | 10 | all | 8 | 62.5% | [30.6%,86.3%] | 0.052 | ⚠不足 |
-| template_only | risk | 10 | test | 8 | 62.5% | [30.6%,86.3%] | 0.052 | ⚠不足 |
-| template_only | risk | 10 | roll | 3 | 100.0% | [43.9%,100.0%] | 0.025 | ⚠不足 |
-| template_only | risk | 20 | all | 3 | 33.3% | [6.2%,79.2%] | 0.564 | ⚠不足 |
-| template_only | risk | 20 | test | 3 | 33.3% | [6.2%,79.2%] | 0.564 | ⚠不足 |
-| no_ru | all | 1 | all | 156 | 55.1% | [47.3%,62.7%] | 0.327 |  |
-| no_ru | all | 1 | train | 73 | 56.2% | [44.8%,67.0%] | 1.000 |  |
+| template_only | risk | 5 | all | 19 | 63.2% | [41.0%,80.8%] | 0.858 | ⚠不足 |
+| template_only | risk | 5 | train | 10 | 60.0% | [31.3%,83.2%] | 0.439 | ⚠不足 |
+| template_only | risk | 5 | test | 9 | 66.7% | [35.4%,87.9%] | 0.317 | ⚠不足 |
+| template_only | risk | 5 | roll | 4 | 75.0% | [30.1%,95.4%] | 1.000 | ⚠不足 |
+| template_only | risk | 10 | all | 19 | 52.6% | [31.7%,72.7%] | 0.858 | ⚠不足 |
+| template_only | risk | 10 | train | 10 | 50.0% | [23.7%,76.3%] | 0.439 | ⚠不足 |
+| template_only | risk | 10 | test | 9 | 55.6% | [26.7%,81.1%] | 0.317 | ⚠不足 |
+| template_only | risk | 10 | roll | 4 | 75.0% | [30.1%,95.4%] | 0.479 | ⚠不足 |
+| template_only | risk | 20 | all | 19 | 52.6% | [31.7%,72.7%] | 0.590 | ⚠不足 |
+| template_only | risk | 20 | train | 10 | 50.0% | [23.7%,76.3%] | 0.197 | ⚠不足 |
+| template_only | risk | 20 | test | 9 | 55.6% | [26.7%,81.1%] | 0.617 | ⚠不足 |
+| template_only | risk | 20 | roll | 4 | 75.0% | [30.1%,95.4%] | 1.000 | ⚠不足 |
+| no_ru | all | 1 | all | 217 | 54.4% | [47.7%,60.9%] | 0.258 |  |
+| no_ru | all | 1 | train | 134 | 54.5% | [46.0%,62.7%] | 0.683 |  |
 | no_ru | all | 1 | test | 83 | 54.2% | [43.5%,64.5%] | 0.226 |  |
 | no_ru | all | 1 | roll | 9 | 66.7% | [35.4%,87.9%] | 0.014 | ⚠不足 |
-| no_ru | all | 3 | all | 152 | 68.4% | [60.7%,75.3%] | 0.683 |  |
-| no_ru | all | 3 | train | 73 | 64.4% | [52.9%,74.4%] | 0.433 |  |
-| no_ru | all | 3 | test | 79 | 72.2% | [61.4%,80.8%] | 0.942 |  |
-| no_ru | all | 3 | roll | 5 | 80.0% | [37.5%,96.4%] | 0.617 | ⚠不足 |
-| no_ru | all | 5 | all | 152 | 55.9% | [48.0%,63.6%] | 0.520 |  |
-| no_ru | all | 5 | train | 73 | 58.9% | [47.4%,69.5%] | 0.845 |  |
-| no_ru | all | 5 | test | 79 | 53.2% | [42.3%,63.8%] | 0.513 |  |
-| no_ru | all | 5 | roll | 5 | 100.0% | [56.5%,100.0%] | 0.134 | ⚠不足 |
-| no_ru | all | 10 | all | 152 | 61.2% | [53.2%,68.6%] | 0.448 |  |
-| no_ru | all | 10 | train | 73 | 54.8% | [43.4%,65.7%] | 0.695 |  |
-| no_ru | all | 10 | test | 79 | 67.1% | [56.1%,76.4%] | 0.216 |  |
-| no_ru | all | 10 | roll | 5 | 100.0% | [56.5%,100.0%] | 0.003 | ⚠不足 |
-| no_ru | all | 20 | all | 133 | 55.6% | [47.2%,63.8%] | 0.310 |  |
-| no_ru | all | 20 | train | 73 | 61.6% | [50.2%,72.0%] | 0.433 |  |
-| no_ru | all | 20 | test | 60 | 48.3% | [36.2%,60.7%] | 0.045 |  |
-| no_ru | bullish | 1 | all | 94 | 59.6% | [49.5%,68.9%] | 0.013 |  |
-| no_ru | bullish | 1 | train | 51 | 52.9% | [39.5%,66.0%] | 1.000 |  |
+| no_ru | all | 3 | all | 217 | 65.9% | [59.4%,71.9%] | 0.154 |  |
+| no_ru | all | 3 | train | 134 | 62.7% | [54.2%,70.4%] | 0.041 |  |
+| no_ru | all | 3 | test | 83 | 71.1% | [60.6%,79.7%] | 0.943 |  |
+| no_ru | all | 3 | roll | 9 | 66.7% | [35.4%,87.9%] | 0.683 | ⚠不足 |
+| no_ru | all | 5 | all | 217 | 57.6% | [50.9%,64.0%] | 0.184 |  |
+| no_ru | all | 5 | train | 134 | 60.5% | [52.0%,68.3%] | 0.221 |  |
+| no_ru | all | 5 | test | 83 | 53.0% | [42.4%,63.4%] | 0.521 |  |
+| no_ru | all | 5 | roll | 9 | 77.8% | [45.3%,93.7%] | 0.221 | ⚠不足 |
+| no_ru | all | 10 | all | 217 | 63.6% | [57.0%,69.7%] | 0.154 |  |
+| no_ru | all | 10 | train | 134 | 61.9% | [53.5%,69.7%] | 0.414 |  |
+| no_ru | all | 10 | test | 83 | 66.3% | [55.6%,75.5%] | 0.226 |  |
+| no_ru | all | 10 | roll | 9 | 77.8% | [45.3%,93.7%] | 0.014 | ⚠不足 |
+| no_ru | all | 20 | all | 217 | 58.1% | [51.4%,64.4%] | 0.301 |  |
+| no_ru | all | 20 | train | 134 | 60.5% | [52.0%,68.3%] | 0.041 |  |
+| no_ru | all | 20 | test | 83 | 54.2% | [43.5%,64.5%] | 0.521 |  |
+| no_ru | all | 20 | roll | 9 | 77.8% | [45.3%,93.7%] | 0.221 | ⚠不足 |
+| no_ru | bullish | 1 | all | 139 | 59.0% | [50.7%,66.8%] | 0.020 |  |
+| no_ru | bullish | 1 | train | 96 | 55.2% | [45.2%,64.8%] | 0.695 |  |
 | no_ru | bullish | 1 | test | 43 | 67.4% | [52.5%,79.5%] | 0.001 |  |
 | no_ru | bullish | 1 | roll | 2 | 100.0% | [34.2%,100.0%] | 1.000 | ⚠不足 |
-| no_ru | bullish | 3 | all | 92 | 73.9% | [64.1%,81.8%] | 0.028 |  |
-| no_ru | bullish | 3 | train | 51 | 70.6% | [57.0%,81.3%] | 0.245 |  |
-| no_ru | bullish | 3 | test | 41 | 78.0% | [63.3%,88.0%] | 0.056 |  |
-| no_ru | bullish | 5 | all | 92 | 65.2% | [55.0%,74.2%] | 0.002 |  |
-| no_ru | bullish | 5 | train | 51 | 68.6% | [55.0%,79.7%] | 0.352 |  |
-| no_ru | bullish | 5 | test | 41 | 61.0% | [45.7%,74.3%] | 0.001 |  |
-| no_ru | bullish | 10 | all | 92 | 59.8% | [49.6%,69.2%] | 0.012 |  |
-| no_ru | bullish | 10 | train | 51 | 62.7% | [49.0%,74.7%] | 0.816 |  |
-| no_ru | bullish | 10 | test | 41 | 56.1% | [41.0%,70.1%] | 0.000 |  |
-| no_ru | bullish | 20 | all | 87 | 48.3% | [38.1%,58.6%] | 0.000 |  |
-| no_ru | bullish | 20 | train | 51 | 68.6% | [55.0%,79.7%] | 0.485 |  |
-| no_ru | bullish | 20 | test | 36 | 19.4% | [9.8%,35.0%] | 0.000 |  |
-| no_ru | bearish | 1 | all | 55 | 45.5% | [33.0%,58.5%] | 0.000 |  |
-| no_ru | bearish | 1 | train | 19 | 57.9% | [36.3%,76.9%] | 0.564 | ⚠不足 |
+| no_ru | bullish | 3 | all | 139 | 71.9% | [64.0%,78.7%] | 0.000 |  |
+| no_ru | bullish | 3 | train | 96 | 70.8% | [61.1%,79.0%] | 0.000 |  |
+| no_ru | bullish | 3 | test | 43 | 74.4% | [59.8%,85.1%] | 0.139 |  |
+| no_ru | bullish | 3 | roll | 2 | 0.0% | [0.0%,65.8%] | 0.045 | ⚠不足 |
+| no_ru | bullish | 5 | all | 139 | 68.3% | [60.2%,75.5%] | 0.000 |  |
+| no_ru | bullish | 5 | train | 96 | 72.9% | [63.3%,80.8%] | 0.001 |  |
+| no_ru | bullish | 5 | test | 43 | 58.1% | [43.3%,71.6%] | 0.004 |  |
+| no_ru | bullish | 5 | roll | 2 | 0.0% | [0.0%,65.8%] | 0.045 | ⚠不足 |
+| no_ru | bullish | 10 | all | 139 | 66.2% | [58.0%,73.5%] | 0.713 |  |
+| no_ru | bullish | 10 | train | 96 | 69.8% | [60.0%,78.1%] | 0.050 |  |
+| no_ru | bullish | 10 | test | 43 | 58.1% | [43.3%,71.6%] | 0.002 |  |
+| no_ru | bullish | 10 | roll | 2 | 100.0% | [34.2%,100.0%] | 0.045 | ⚠不足 |
+| no_ru | bullish | 20 | all | 139 | 49.6% | [41.4%,57.9%] | 0.001 |  |
+| no_ru | bullish | 20 | train | 96 | 64.6% | [54.6%,73.4%] | 0.010 |  |
+| no_ru | bullish | 20 | test | 43 | 16.3% | [8.1%,30.0%] | 0.000 |  |
+| no_ru | bullish | 20 | roll | 2 | 0.0% | [0.0%,65.8%] | 0.045 | ⚠不足 |
+| no_ru | bearish | 1 | all | 70 | 44.3% | [33.2%,55.9%] | 0.000 |  |
+| no_ru | bearish | 1 | train | 34 | 50.0% | [34.1%,65.9%] | 0.063 |  |
 | no_ru | bearish | 1 | test | 36 | 38.9% | [24.8%,55.1%] | 0.000 |  |
 | no_ru | bearish | 1 | roll | 6 | 50.0% | [18.8%,81.2%] | 0.005 | ⚠不足 |
-| no_ru | bearish | 3 | all | 54 | 59.3% | [46.0%,71.3%] | 0.038 |  |
-| no_ru | bearish | 3 | train | 19 | 52.6% | [31.7%,72.7%] | 0.847 | ⚠不足 |
-| no_ru | bearish | 3 | test | 35 | 62.9% | [46.3%,76.8%] | 0.023 |  |
-| no_ru | bearish | 3 | roll | 5 | 80.0% | [37.5%,96.4%] | 0.617 | ⚠不足 |
-| no_ru | bearish | 5 | all | 54 | 44.4% | [32.0%,57.6%] | 0.023 |  |
-| no_ru | bearish | 5 | train | 19 | 36.8% | [19.1%,59.0%] | 0.336 | ⚠不足 |
-| no_ru | bearish | 5 | test | 35 | 48.6% | [33.0%,64.4%] | 0.039 |  |
-| no_ru | bearish | 5 | roll | 5 | 100.0% | [56.5%,100.0%] | 0.134 | ⚠不足 |
-| no_ru | bearish | 10 | all | 54 | 63.0% | [49.6%,74.6%] | 0.000 |  |
-| no_ru | bearish | 10 | train | 19 | 36.8% | [19.1%,59.0%] | 0.336 | ⚠不足 |
-| no_ru | bearish | 10 | test | 35 | 77.1% | [61.0%,87.9%] | 0.000 |  |
-| no_ru | bearish | 10 | roll | 5 | 100.0% | [56.5%,100.0%] | 0.003 | ⚠不足 |
-| no_ru | bearish | 20 | all | 41 | 70.7% | [55.5%,82.4%] | 0.000 |  |
-| no_ru | bearish | 20 | train | 19 | 47.4% | [27.3%,68.3%] | 0.564 | ⚠不足 |
-| no_ru | bearish | 20 | test | 22 | 90.9% | [72.2%,97.5%] | 0.000 | ⚠不足 |
-| no_ru | risk | 1 | all | 7 | 71.4% | [35.9%,91.8%] | 1.000 | ⚠不足 |
-| no_ru | risk | 1 | train | 3 | 100.0% | [43.9%,100.0%] | 0.083 | ⚠不足 |
+| no_ru | bearish | 3 | all | 70 | 54.3% | [42.7%,65.4%] | 0.006 |  |
+| no_ru | bearish | 3 | train | 34 | 44.1% | [28.9%,60.6%] | 0.063 |  |
+| no_ru | bearish | 3 | test | 36 | 63.9% | [47.6%,77.5%] | 0.042 |  |
+| no_ru | bearish | 3 | roll | 6 | 83.3% | [43.6%,97.0%] | 1.000 | ⚠不足 |
+| no_ru | bearish | 5 | all | 70 | 40.0% | [29.3%,51.7%] | 0.001 |  |
+| no_ru | bearish | 5 | train | 34 | 29.4% | [16.8%,46.2%] | 0.003 |  |
+| no_ru | bearish | 5 | test | 36 | 50.0% | [34.5%,65.5%] | 0.068 |  |
+| no_ru | bearish | 5 | roll | 6 | 100.0% | [61.0%,100.0%] | 0.059 | ⚠不足 |
+| no_ru | bearish | 10 | all | 70 | 60.0% | [48.3%,70.7%] | 0.002 |  |
+| no_ru | bearish | 10 | train | 34 | 44.1% | [28.9%,60.6%] | 0.116 |  |
+| no_ru | bearish | 10 | test | 36 | 75.0% | [58.9%,86.2%] | 0.000 |  |
+| no_ru | bearish | 10 | roll | 6 | 83.3% | [43.6%,97.0%] | 0.018 | ⚠不足 |
+| no_ru | bearish | 20 | all | 70 | 74.3% | [63.0%,83.1%] | 0.000 |  |
+| no_ru | bearish | 20 | train | 34 | 52.9% | [36.7%,68.5%] | 0.886 |  |
+| no_ru | bearish | 20 | test | 36 | 94.4% | [81.9%,98.5%] | 0.000 |  |
+| no_ru | bearish | 20 | roll | 6 | 100.0% | [61.0%,100.0%] | 0.059 | ⚠不足 |
+| no_ru | risk | 1 | all | 8 | 62.5% | [30.6%,86.3%] | 0.763 | ⚠不足 |
+| no_ru | risk | 1 | train | 4 | 75.0% | [30.1%,95.4%] | 0.317 | ⚠不足 |
 | no_ru | risk | 1 | test | 4 | 50.0% | [15.0%,85.0%] | 0.257 | ⚠不足 |
 | no_ru | risk | 1 | roll | 1 | 100.0% | [20.6%,100.0%] | 1.000 | ⚠不足 |
-| no_ru | risk | 3 | all | 6 | 66.7% | [30.0%,90.3%] | 1.000 | ⚠不足 |
-| no_ru | risk | 3 | train | 3 | 33.3% | [6.2%,79.2%] | 0.564 | ⚠不足 |
-| no_ru | risk | 3 | test | 3 | 100.0% | [43.9%,100.0%] | 0.655 | ⚠不足 |
-| no_ru | risk | 5 | all | 6 | 16.7% | [3.0%,56.4%] | 0.034 | ⚠不足 |
-| no_ru | risk | 5 | train | 3 | 33.3% | [6.2%,79.2%] | 0.564 | ⚠不足 |
-| no_ru | risk | 5 | test | 3 | 0.0% | [0.0%,56.1%] | 0.025 | ⚠不足 |
-| no_ru | risk | 10 | all | 6 | 66.7% | [30.0%,90.3%] | 0.479 | ⚠不足 |
-| no_ru | risk | 10 | train | 3 | 33.3% | [6.2%,79.2%] | 0.564 | ⚠不足 |
-| no_ru | risk | 10 | test | 3 | 100.0% | [43.9%,100.0%] | 0.180 | ⚠不足 |
-| no_ru | risk | 20 | all | 5 | 60.0% | [23.1%,88.2%] | 0.257 | ⚠不足 |
-| no_ru | risk | 20 | train | 3 | 33.3% | [6.2%,79.2%] | 0.564 | ⚠不足 |
-| no_ru | risk | 20 | test | 2 | 100.0% | [34.2%,100.0%] | 0.045 | ⚠不足 |
+| no_ru | risk | 3 | all | 8 | 62.5% | [30.6%,86.3%] | 0.763 | ⚠不足 |
+| no_ru | risk | 3 | train | 4 | 25.0% | [4.6%,69.9%] | 0.317 | ⚠不足 |
+| no_ru | risk | 3 | test | 4 | 100.0% | [51.0%,100.0%] | 0.257 | ⚠不足 |
+| no_ru | risk | 3 | roll | 1 | 100.0% | [20.6%,100.0%] | 0.157 | ⚠不足 |
+| no_ru | risk | 5 | all | 8 | 25.0% | [7.1%,59.1%] | 0.132 | ⚠不足 |
+| no_ru | risk | 5 | train | 4 | 25.0% | [4.6%,69.9%] | 0.317 | ⚠不足 |
+| no_ru | risk | 5 | test | 4 | 25.0% | [4.6%,69.9%] | 0.257 | ⚠不足 |
+| no_ru | risk | 5 | roll | 1 | 100.0% | [20.6%,100.0%] | 0.157 | ⚠不足 |
+| no_ru | risk | 10 | all | 8 | 50.0% | [21.5%,78.5%] | 0.763 | ⚠不足 |
+| no_ru | risk | 10 | train | 4 | 25.0% | [4.6%,69.9%] | 0.317 | ⚠不足 |
+| no_ru | risk | 10 | test | 4 | 75.0% | [30.1%,95.4%] | 0.706 | ⚠不足 |
+| no_ru | risk | 10 | roll | 1 | 0.0% | [0.0%,79.3%] | 0.157 | ⚠不足 |
+| no_ru | risk | 20 | all | 8 | 62.5% | [30.6%,86.3%] | 0.132 | ⚠不足 |
+| no_ru | risk | 20 | train | 4 | 25.0% | [4.6%,69.9%] | 0.317 | ⚠不足 |
+| no_ru | risk | 20 | test | 4 | 100.0% | [51.0%,100.0%] | 0.008 | ⚠不足 |
+| no_ru | risk | 20 | roll | 1 | 100.0% | [20.6%,100.0%] | 0.157 | ⚠不足 |
 
 > 总参考行未列（混合值禁止引用）。template_only 为弱语义/污染对照层，显著偏离 50% 不构成预测证据。
 
@@ -305,18 +335,18 @@
 
 | segment | window | ok_rate | tmpl_rate | 差值 | 差值 95% CI | 含 0? |
 |---|---|---|---|---|---|---|
-| all | 1 | 63.0%(n=127) | 58.6%(n=396) | +4.4% | [-5.3%,+14.1%] | 是 |
-| all | 3 | 75.6%(n=127) | 64.4%(n=388) | +11.2% | [+2.3%,+20.0%] | 否 |
-| all | 5 | 62.1%(n=124) | 53.0%(n=381) | +9.1% | [-0.8%,+19.0%] | 是 |
-| all | 10 | 62.8%(n=121) | 58.8%(n=379) | +4.0% | [-6.0%,+13.9%] | 是 |
-| all | 20 | 43.8%(n=112) | 47.5%(n=301) | -3.8% | [-14.5%,+7.0%] | 是 |
+| all | 1 | 60.8%(n=143) | 56.7%(n=554) | +4.2% | [-4.8%,+13.2%] | 是 |
+| all | 3 | 71.3%(n=143) | 64.6%(n=554) | +6.7% | [-1.7%,+15.1%] | 是 |
+| all | 5 | 59.4%(n=143) | 55.4%(n=554) | +4.0% | [-5.0%,+13.1%] | 是 |
+| all | 10 | 60.1%(n=143) | 57.4%(n=554) | +2.7% | [-6.3%,+11.8%] | 是 |
+| all | 20 | 46.2%(n=143) | 55.4%(n=554) | -9.3% | [-18.4%,-0.1%] | 否 |
 | test | 1 | 62.6%(n=107) | 54.8%(n=241) | +7.9% | [-3.3%,+19.0%] | 是 |
-| test | 3 | 78.5%(n=107) | 65.7%(n=233) | +12.8% | [+2.9%,+22.7%] | 否 |
-| test | 5 | 63.5%(n=104) | 50.0%(n=226) | +13.5% | [+2.1%,+24.8%] | 否 |
-| test | 10 | 63.4%(n=101) | 53.6%(n=224) | +9.8% | [-1.6%,+21.2%] | 是 |
-| test | 20 | 43.5%(n=92) | 36.3%(n=146) | +7.2% | [-5.6%,+20.0%] | 是 |
-| train | 1 | 65.0%(n=20) | 64.5%(n=155) | +0.5% | [-21.7%,+22.7%] | 是 |
-| train | 3 | 60.0%(n=20) | 62.6%(n=155) | -2.6% | [-25.4%,+20.2%] | 是 |
-| train | 5 | 55.0%(n=20) | 57.4%(n=155) | -2.4% | [-25.6%,+20.7%] | 是 |
-| train | 10 | 60.0%(n=20) | 66.5%(n=155) | -6.5% | [-29.2%,+16.3%] | 是 |
-| train | 20 | 45.0%(n=20) | 58.1%(n=155) | -13.1% | [-36.2%,+10.1%] | 是 |
+| test | 3 | 78.5%(n=107) | 66.4%(n=241) | +12.1% | [+2.3%,+21.9%] | 否 |
+| test | 5 | 62.6%(n=107) | 51.0%(n=241) | +11.6% | [+0.5%,+22.7%] | 否 |
+| test | 10 | 62.6%(n=107) | 54.4%(n=241) | +8.3% | [-2.9%,+19.4%] | 是 |
+| test | 20 | 45.8%(n=107) | 50.2%(n=241) | -4.4% | [-15.8%,+6.9%] | 是 |
+| train | 1 | 55.6%(n=36) | 58.1%(n=313) | -2.6% | [-19.7%,+14.5%] | 是 |
+| train | 3 | 50.0%(n=36) | 63.3%(n=313) | -13.3% | [-30.4%,+3.9%] | 是 |
+| train | 5 | 50.0%(n=36) | 58.8%(n=313) | -8.8% | [-26.0%,+8.4%] | 是 |
+| train | 10 | 52.8%(n=36) | 59.7%(n=313) | -7.0% | [-24.1%,+10.2%] | 是 |
+| train | 20 | 47.2%(n=36) | 59.4%(n=313) | -12.2% | [-29.4%,+5.0%] | 是 |

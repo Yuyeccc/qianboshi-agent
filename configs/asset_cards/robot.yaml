@@ -1,0 +1,55 @@
+asset_id: ROBOT
+asset_name: 机器人
+asset_type: theme
+default_horizon: medium
+version: 1
+description: 机器人中期趋势分析框架
+
+factors:
+  - factor_id: HUMANOID_MASS_PRODUCTION
+    factor_name: 人形机器人量产
+    category: industry
+    data_binding:
+      type: view_query
+      query_terms: ["人形机器人", "量产", "特斯拉optimus"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 人形机器人量产进展通常提升机器人产业链预期
+      strength: high
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: POLICY_SUPPORT
+    factor_name: 政策支持
+    category: policy
+    data_binding:
+      type: view_query
+      query_terms: ["机器人", "政策", "补贴"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 政策和补贴强化通常改善机器人板块风险偏好
+      strength: medium
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: ROBOT_ETF
+    factor_name: 机器人ETF
+    category: market
+    data_binding:
+      type: market
+      symbol: "159770.SZ"
+      source: "yfinance"
+      fields: ["close", "pct_change_5d", "pct_change_20d"]
+    impact_rule:
+      relation: positive
+      description: 机器人ETF走强通常反映板块资金和景气预期改善
+      strength: medium
+    refresh_policy:
+      mode: scheduled
+      frequency: daily

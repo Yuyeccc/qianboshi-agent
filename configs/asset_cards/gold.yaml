@@ -1,0 +1,121 @@
+asset_id: GOLD
+asset_name: 黄金
+asset_type: commodity
+default_horizon: medium
+version: 1
+description: 黄金中期趋势分析框架
+
+factors:
+  - factor_id: DXY
+    factor_name: 美元指数
+    category: macro
+    data_binding:
+      type: market
+      symbol: "DX-Y.NYB"
+      source: "yfinance"
+      fields: ["close", "pct_change_5d", "pct_change_20d"]
+    impact_rule:
+      relation: negative
+      description: 美元走强通常压制黄金，美元走弱通常利好黄金
+      strength: high
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: US_REAL_YIELD
+    factor_name: 美债实际利率
+    category: macro
+    data_binding:
+      type: market
+      symbol: "^TNX"
+      source: "yfinance"
+      fields: ["close", "change_5d", "change_20d"]
+    impact_rule:
+      relation: negative
+      description: 实际利率上行压制无息资产黄金，实际利率下行利好黄金
+      strength: high
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: GEOPOLITICAL_RISK
+    factor_name: 地缘风险
+    category: event
+    data_binding:
+      type: view_query
+      query_terms: ["地缘", "战争", "中东", "避险", "冲突"]
+      view_types: ["risk", "event", "market"]
+      lookback_days: 14
+    impact_rule:
+      relation: positive
+      description: 地缘风险升温通常强化黄金避险需求
+      strength: medium
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: CENTRAL_BANK_BUYING
+    factor_name: 央行购金
+    category: fundamental
+    data_binding:
+      type: view_query
+      query_terms: ["央行购金", "黄金储备", "去美元化"]
+      view_types: ["framework", "market", "sector"]
+      lookback_days: 60
+    impact_rule:
+      relation: positive
+      description: 央行购金构成黄金中长期配置支撑
+      strength: high
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  # --- 830审查注入（2026-08-30 蓝图#19）：财政风险溢价线 ---
+  # 逻辑：美国联邦债务40万亿美元+利息占支出~19%→财政赤字扩大→财政部海量发长债
+  #       →市场索要债务风险溢价→出现"美债收益率与黄金同涨"反常态（主权信用对冲）
+  # 830报告核心：这是主流"降息→黄金涨"交易之外的预期差第二主线
+  # 维护：manual 因子，每周手动更新三个 manual_value（A=抬升 B=持平 C=回落）
+  - factor_id: TREASURY_TERM_PREMIUM
+    factor_name: 美债期限溢价
+    category: macro
+    data_binding:
+      type: manual
+      manual_value: "待更新"
+      note: "10Y-2Y利差及长债拍卖需求信号；A=风险溢价抬升(利黄金) B=持平 C=回落(压黄金)"
+    impact_rule:
+      relation: positive
+      description: 长端收益率因债务风险溢价上行时，黄金作为主权信用对冲同步走强（负相关失效情景）
+      strength: high
+    refresh_policy:
+      mode: manual
+      frequency: weekly
+
+  - factor_id: FISCAL_DEFICIT
+    factor_name: 财政赤字压力
+    category: macro
+    data_binding:
+      type: manual
+      manual_value: "待更新"
+      note: "美国财政赤字/发债规模边际变化；A=赤字扩大(利黄金) B=持平 C=收窄(压黄金)"
+    impact_rule:
+      relation: positive
+      description: 赤字扩大→发债供给增加→期限溢价上升→黄金财政风险溢价抬升
+      strength: medium
+    refresh_policy:
+      mode: manual
+      frequency: weekly
+
+  - factor_id: LONG_TERM_BOND_SUPPLY
+    factor_name: 长债供给
+    category: macro
+    data_binding:
+      type: manual
+      manual_value: "待更新"
+      note: "财政部长期国债发行计划/拍卖结果；A=供给激增(利黄金) B=平稳 C=缩量(压黄金)"
+    impact_rule:
+      relation: positive
+      description: 长债供给激增→收益率上行→财政风险溢价情景权重抬升
+      strength: medium
+    refresh_policy:
+      mode: manual
+      frequency: weekly

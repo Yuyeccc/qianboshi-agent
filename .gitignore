@@ -27,3 +27,45 @@ logs/
 
 # macOS
 .DS_Store
+
+# 备份/临时（70 号交接后仓库治理 2026-09-01）
+*.bak
+*.bak_*
+*.bak_v*
+config.yaml.bak.*
+架构文档.md.bak*
+
+# 根目录临时数据/脚本（含密钥泄漏风险文件 test_key2.py）
+innov.json
+zijin.json
+test_key2.py
+.hermes/
+
+# 运行时数据产物（可再生成，勿入库）
+data/*.db
+data/*.db.bak*
+data/bilibili_cookies.txt
+data/tmp/
+data/evidence/
+data/reviews/
+data/views/
+data/briefs/
+data/notes_backup_*/
+data/*_tmp*.json
+data/auto_tracked.json
+data/bv_*.json
+data/*_bvs.json
+data/market_cache.json
+data/market_snapshot_10d.json
+data/monitor_state.json
+data/my_views.json
+data/pipeline_queue.json
+data/drain_progress.txt
+data/pending_dl_*.txt
+data/notes_backfill_progress.txt
+data/fix_plan.md
+data/fixplan_*.txt
+data/todo_*.md
+data/portfolio.json.bak*
+data/price_trends.json.bak*
+data/创新药分析报告_20260806.md

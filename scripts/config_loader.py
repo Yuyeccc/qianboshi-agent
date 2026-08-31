@@ -85,16 +85,18 @@ def get_api_key(config):
     """获取 API 密钥。优先级：环境变量 > .env文件 > config.yaml 中的 api_key_env 指向的环境变量"""
     _load_dotenv()  # 确保 .env 已加载
 
-    # 直接检查 DEEPSEEK_API_KEY 环境变量
-    key = os.environ.get("DEEPSEEK_API_KEY", "")
-    if key:
-        return key
-
-    # 检查 config.yaml 中指定的环境变量名
+    # 优先按 config.yaml 的 api_key_env 取（2026-08-27 切智谱后 DEEPSEEK 死key不再兜底）
     if config:
         key_env = config.get("llm", {}).get("api_key_env", "")
         if key_env:
-            return os.environ.get(key_env, "")
+            key = os.environ.get(key_env, "")
+            if key:
+                return key
+
+    # 兼容旧路径：直接检查 DEEPSEEK_API_KEY 环境变量
+    key = os.environ.get("DEEPSEEK_API_KEY", "")
+    if key:
+        return key
 
     return ""
 
@@ -106,11 +108,12 @@ def get_llm_config(config):
     return {
         "api_key": get_api_key(config),
         "api_base": llm.get("api_base", "https://api.deepseek.com/v1"),
-        "routine_model": llm.get("routine_model", "deepseek-chat"),
-        "analysis_model": llm.get("analysis_model", "deepseek-v4-pro"),
+        "routine_model": llm.get("routine_model", "deepseek-v4-flash"),
+        "analysis_model": llm.get("analysis_model", "deepseek-v4-flash"),
         "max_tokens": llm.get("max_tokens", 4096),
         "temperature_routine": llm.get("temperature", {}).get("routine", 0.3),
         "temperature_analysis": llm.get("temperature", {}).get("analysis", 0.7),
+        "premium": llm.get("premium", {}),  # 贵模型优先配置（gpt-5.6 fluxionai）
     }
 
 

@@ -6,13 +6,77 @@
 Agent 通过 ToolRegistry 发现和调用工具，不直接跑 shell 命令。
 """
 import json
+import os
 import sys
 import time
 from pathlib import Path
 
+import pandas as pd
+
 # 确保能找到同目录的 config_loader
 sys.path.insert(0, str(Path(__file__).parent))
 from config_loader import load_config, get_data_dir, get_vector_db_path, get_obsidian_path, get_proxy
+
+
+BANNED_ANALYSTS = ("主力行为学", "汤山老王", "马跑跑", "邻居大爷", "八叔不啰嗦")
+
+
+def _is_banned_source(source):
+    return any(b in (source or "") for b in BANNED_ANALYSTS)
+
+
+def _is_a_share_symbol(code):
+    return isinstance(code, str) and (code.endswith(".SS") or code.endswith(".SZ"))
+
+
+def _normalize_symbol(code, meta=None):
+    """把 tracking_pool 里的裸 A股代码转成 yfinance 后缀代码。"""
+    if not isinstance(code, str) or "." in code or not code.isdigit() or len(code) != 6:
+        return code
+    # 场外基金有场内对应代码时，优先用场内代码（如 000217 → 518880.SS）
+    market_code = (meta or {}).get("market_code", "")
+    if market_code:
+        return market_code
+    market = (meta or {}).get("market", "")
+    if market == "SS" or code.startswith(("60", "68", "51", "58")):
+        return f"{code}.SS"
+    return f"{code}.SZ"
+
+
+def _estimate_offshore_nav(code, meta):
+    """场外基金净值推算：最新净值 = 成本净值 × (1 + 场内累计涨跌幅)。
+
+    用 price_trends.json 里 market_code 从 nav_date 到最新交易日的累计涨跌幅。
+    返回 {'nav': float, 'cum_pct': float} 或 None（数据不足）。
+    """
+    try:
+        import json as _json
+        from pathlib import Path
+        trend_path = Path(__file__).resolve().parent.parent / "data" / "price_trends.json"
+        if not trend_path.exists():
+            return None
+        trends = _json.loads(trend_path.read_text(encoding="utf-8"))
+        market_code = meta.get("market_code", "")
+        nav_date = meta.get("nav_date", "")
+        cost = meta.get("avg_cost", 0)
+        entry = trends.get(market_code) or {}
+        if not entry or not nav_date or not cost:
+            return None
+        dates = sorted(entry.keys())
+        # 基准：nav_date 当天或之前最近的价格（nav_date 当日可能缺数据，如周末/未采集）
+        later = [d for d in dates if d > nav_date]
+        if not later:
+            return None
+        p_now = entry[later[-1]].get("price")
+        prev = [d for d in dates if d <= nav_date]
+        p_base = entry[prev[-1]].get("price") if prev else entry[later[0]].get("price")
+        if not p_base or not p_now or p_base <= 0:
+            return None
+        cum_pct = (p_now - p_base) / p_base * 100
+        nav = round(cost * (1 + cum_pct / 100), 4)
+        return {"nav": nav, "cum_pct": cum_pct}
+    except Exception:
+        return None
 
 
 class ToolRegistry:
@@ -55,6 +119,49 @@ class ToolRegistry:
                     },
                 },
                 "call": self._query_rag,
+            },
+            "get_latest_views": {
+                "name": "get_latest_views",
+                "description": (
+                    "获取知识库中**最新的**分析师直播/短视频观点（按日期倒序）。"
+                    "当需要了解最新市场观点、最新直播内容时使用，绕过语义匹配直接按时间获取。"
+                ),
+                "parameters": {
+                    "count": {
+                        "type": "integer",
+                        "required": False,
+                        "default": 8,
+                        "description": "返回最新几条观点，3-15",
+                    },
+                },
+                "call": self._get_latest_views,
+            },
+            "get_latest_digest": {
+                "name": "get_latest_digest",
+                "description": (
+                    "读取结构化观点库生成的最近观点digest。盘前简报和最新市场观点应优先使用它，"
+                    "不要再让普通RAG决定最新观点。"
+                ),
+                "parameters": {
+                    "days": {"type": "integer", "required": False, "default": 3, "description": "最近N天，默认3天，不足可用7天"},
+                    "limit": {"type": "integer", "required": False, "default": 30, "description": "最多返回top_views数量"},
+                },
+                "call": self._get_latest_digest,
+            },
+            "query_views": {
+                "name": "query_views",
+                "description": (
+                    "查询结构化观点库，按日期、实体、分析师、观点类型硬过滤并分桶排序。"
+                    "当用户问某板块/个股最近怎么看时优先用它。"
+                ),
+                "parameters": {
+                    "entity": {"type": "string", "required": False, "description": "板块/个股/ETF/别名，如 创新药、光模块、300502"},
+                    "analyst": {"type": "string", "required": False, "description": "分析师名，如 钱博士直播、李一恩"},
+                    "date_range": {"type": "string", "required": False, "default": "7d", "description": "日期窗口，如 3d、7d、30d、2026-07-01:2026-07-20"},
+                    "view_type": {"type": "string", "required": False, "description": "market/sector/stock/risk/framework 等"},
+                    "limit": {"type": "integer", "required": False, "default": 10, "description": "最多返回条数"},
+                },
+                "call": self._query_views,
             },
             "get_portfolio": {
                 "name": "get_portfolio",
@@ -174,7 +281,7 @@ class ToolRegistry:
 
     # ─── 工具实现 ─────────────────────────────────────────
 
-    def _query_rag(self, query, top_k=5, show_weights=False):
+    def _query_rag(self, query, top_k=15, show_weights=False):
         """检索钱博士知识库"""
         from query_rag import QianboshiRAG
 
@@ -188,6 +295,8 @@ class ToolRegistry:
                 "content": r.get("content", "")[:800],  # 截断长文本
                 "score": round(r.get("score", 0), 4),
                 "doc_type": r.get("type", "unknown"),
+                "date": r.get("date", ""),
+                "raw_score": r.get("raw_score", 0),
             }
             if show_weights and "weights" in r:
                 item["weights"] = r["weights"]
@@ -198,6 +307,99 @@ class ToolRegistry:
             "total_hits": len(results),
             "results": results,
             "summary": f"在{len(results)}条结果中找到相关观点" if results else "未找到相关观点",
+        }
+
+    def _get_latest_views(self, count=8):
+        """获取最新N条观点（按pubdate倒序，绕过embedding匹配）"""
+        from query_rag import QianboshiRAG
+        rag = QianboshiRAG(config=self.config)
+        
+        # 直接从ChromaDB获取所有文档，按日期排序
+        all_data = rag.collection.get(limit=10000)
+        if not all_data["metadatas"]:
+            return {"results": [], "total_hits": 0, "summary": "无数据"}
+        
+        # 组装带日期的结果
+        items = []
+        for i, meta in enumerate(all_data["metadatas"]):
+            if not meta or "source" not in meta:
+                continue
+            src = meta["source"]
+            if _is_banned_source(src):
+                continue
+            doc_date = rag._extract_date(src)
+            items.append({
+                "source": src,
+                "content": all_data["documents"][i][:600],
+                "date": str(doc_date),
+            })
+        
+        # 按日期倒序
+        items.sort(key=lambda x: x["date"], reverse=True)
+        
+        # 去重：同源只保留第一条（内容最前面）
+        seen = set()
+        deduped = []
+        for item in items:
+            src_base = item["source"].split(".md")[0]
+            if src_base not in seen:
+                seen.add(src_base)
+                deduped.append(item)
+        
+        top = deduped[:min(count, len(deduped))]
+        
+        return {
+            "total_hits": len(top),
+            "results": top,
+            "summary": f"获取到{len(top)}条最新观点（最新日期: {top[0].get('date', '无') if top else '无'}）",
+        }
+
+    def _get_latest_digest(self, days=3, limit=30):
+        """读取结构化最近观点 digest。"""
+        from latest_digest import get_latest_digest
+
+        digest = get_latest_digest(days=int(days or 3), limit=int(limit or 30))
+        return {
+            "total_hits": len(digest.get("top_views", [])),
+            "digest": digest,
+            "summary": f"获取到结构化最近观点digest：{digest.get('source_view_count', 0)}条候选，{len(digest.get('by_sector', {}))}个板块",
+        }
+
+    def _query_views(self, entity=None, analyst=None, date_range="7d", view_type=None, limit=10):
+        """查询结构化观点库。"""
+        from view_store import query_views
+
+        results = query_views(
+            entity=entity,
+            analyst=analyst,
+            date_range=date_range or "7d",
+            view_type=view_type,
+            limit=int(limit or 10),
+        )
+        compact = []
+        for v in results:
+            compact.append({
+                "view_id": v.get("view_id"),
+                "date": v.get("date"),
+                "analyst": v.get("analyst"),
+                "source_file": v.get("source_file"),
+                "section": v.get("section"),
+                "entities": v.get("entities", {}),
+                "stance": v.get("stance"),
+                "horizon": v.get("horizon"),
+                "view_type": v.get("view_type"),
+                "claim": v.get("claim"),
+                "logic": v.get("logic"),
+                "risk": v.get("risk"),
+                "evidence": (v.get("evidence") or "")[:500],
+                "rank_score": v.get("rank_score"),
+                "bucket": v.get("bucket"),
+            })
+        return {
+            "query": {"entity": entity, "analyst": analyst, "date_range": date_range, "view_type": view_type},
+            "total_hits": len(compact),
+            "results": compact,
+            "summary": f"结构化观点库找到{len(compact)}条相关观点" if compact else "结构化观点库未找到相关观点",
         }
 
     def _get_portfolio(self):
@@ -225,7 +427,8 @@ class ToolRegistry:
 
         for code, h in holdings.items():
             try:
-                t = yf.Ticker(code)
+                yf_code = _normalize_symbol(code, h)
+                t = yf.Ticker(yf_code)
                 hist = t.history(period="1d")
                 if hist.empty:
                     results.append({"code": code, "name": h.get("name", ""), "error": "无法获取行情"})
@@ -233,7 +436,16 @@ class ToolRegistry:
                 price = float(hist["Close"].iloc[-1])
                 shares = h.get("shares", 0)
                 cost = h.get("avg_cost", 0)
-                market_value = round(price * shares, 2)
+                # 场外基金（有 market_code + nav_date）：份额按场外净值折算，
+                # 最新净值 = 成本净值 × (1 + 场内累计涨跌幅)，避免场内外计价单位混算
+                nav_price = price
+                nav_note = ""
+                if h.get("market_code") and h.get("nav_date") and cost:
+                    est = _estimate_offshore_nav(code, h)
+                    if est:
+                        nav_price = est["nav"]
+                        nav_note = f"净值推算(场内{h.get('market_code')}累计{est['cum_pct']:+.2f}%)"
+                market_value = round(nav_price * shares, 2)
                 cost_value = round(cost * shares, 2)
                 pnl = round(market_value - cost_value, 2)
                 pnl_pct = round((pnl / cost_value * 100), 2) if cost_value else 0
@@ -246,10 +458,11 @@ class ToolRegistry:
                     "name": h.get("name", ""),
                     "shares": shares,
                     "cost": cost,
-                    "price": price,
+                    "price": nav_price,
                     "market_value": market_value,
                     "pnl": pnl,
                     "pnl_pct": pnl_pct,
+                    "nav_note": nav_note,
                 })
             except Exception as e:
                 results.append({"code": code, "name": h.get("name", ""), "error": str(e)})
@@ -286,9 +499,9 @@ class ToolRegistry:
         # A股
         if pool in ("all", "stocks"):
             for code, info in tp.get("stocks", {}).items():
-                items[code] = {"name": info.get("name", ""), "market": "A股", "reason": info.get("reason", "")}
+                items[code] = {"name": info.get("name", ""), "market": "A股", "yf_market": info.get("market", ""), "reason": info.get("reason", "")}
             for code, info in tp.get("etfs", {}).items():
-                items[code] = {"name": info.get("name", ""), "market": "ETF", "reason": info.get("reason", "")}
+                items[code] = {"name": info.get("name", ""), "market": "ETF", "yf_market": info.get("market", "SZ"), "reason": info.get("reason", "")}
 
         # 美股
         if pool in ("all", "us"):
@@ -305,11 +518,12 @@ class ToolRegistry:
         results = []
         alerts = []
         for code, meta in items.items():
+            yf_code = _normalize_symbol(code, meta)
             try:
-                t = yf.Ticker(code)
+                t = yf.Ticker(yf_code)
                 hist = t.history(period="5d")
                 if hist.empty:
-                    results.append({**meta, "code": code, "error": "无行情"})
+                    results.append({**meta, "code": code, "symbol": yf_code, "error": "无行情"})
                     continue
 
                 close = float(hist["Close"].iloc[-1])
@@ -320,7 +534,10 @@ class ToolRegistry:
                 avg_vol = float(hist["Volume"].iloc[:-1].mean()) if len(hist) > 1 else volume
                 vol_ratio = round(volume / avg_vol, 2) if avg_vol > 0 else 1.0
 
-                item = {**meta, "code": code, "price": close, "change_pct": change_pct}
+                item = {**meta, "code": code, "symbol": yf_code, "price": close, "change_pct": change_pct}
+                if _is_a_share_symbol(yf_code) and len(hist) < 2:
+                    item["change_pct"] = None
+                    item["note"] = "A股昨收/缓存价，未计算今日涨跌"
                 results.append(item)
 
                 # 异动检测
@@ -330,7 +547,7 @@ class ToolRegistry:
                     alerts.append(f"📊 {meta['name']}({code}) 量比 {vol_ratio}x")
 
             except Exception as e:
-                results.append({**meta, "code": code, "error": str(e)})
+                results.append({**meta, "code": code, "symbol": yf_code, "error": str(e)})
 
         return {
             "pool": pool,
@@ -341,7 +558,7 @@ class ToolRegistry:
         }
 
     def _get_market_indexes(self):
-        """拉取中美主要指数"""
+        """拉取中美主要指数（批量下载+代理支持）"""
         try:
             import yfinance as yf
         except ImportError:
@@ -356,25 +573,51 @@ class ToolRegistry:
             "^GSPC": "标普500",
         }
 
+        # 走代理（如果配置了）
+        proxy = get_proxy(self.config)
+        if proxy:
+            os.environ['HTTP_PROXY'] = proxy
+            os.environ['HTTPS_PROXY'] = proxy
+
         results = {}
-        for code, name in indexes.items():
-            try:
-                t = yf.Ticker(code)
-                hist = t.history(period="2d")
-                if hist.empty:
-                    results[code] = {"name": name, "error": "无数据"}
-                    continue
-                close = float(hist["Close"].iloc[-1])
-                prev = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else close
-                change_pct = round((close - prev) / prev * 100, 2)
-                results[code] = {
-                    "name": name,
-                    "price": close,
-                    "change_pct": change_pct,
-                    "change_str": f"{'+' if change_pct > 0 else ''}{change_pct}%",
-                }
-            except Exception as e:
-                results[code] = {"name": name, "error": str(e)}
+        try:
+            data = yf.download(list(indexes.keys()), period="2d", progress=False, timeout=20)
+            if data is not None and not data.empty:
+                for code, name in indexes.items():
+                    try:
+                        if isinstance(data.columns, pd.MultiIndex):
+                            col = data.xs(code, level=1, axis=1)
+                        else:
+                            col = data
+                        close = float(col["Close"].iloc[-1])
+                        prev = float(col["Close"].iloc[-2]) if len(col) >= 2 else close
+                        change_pct = round((close - prev) / prev * 100, 2)
+                        results[code] = {
+                            "name": name, "price": close,
+                            "change_pct": change_pct,
+                            "change_str": f"{'+' if change_pct > 0 else ''}{change_pct}%",
+                        }
+                    except Exception:
+                        results[code] = {"name": name, "error": "解析失败"}
+            else:
+                # 回退到逐只查询
+                for code, name in indexes.items():
+                    try:
+                        t = yf.Ticker(code)
+                        hist = t.history(period="2d")
+                        if not hist.empty:
+                            close = float(hist["Close"].iloc[-1])
+                            prev = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else close
+                            change_pct = round((close - prev) / prev * 100, 2)
+                            results[code] = {"name": name, "price": close,
+                                "change_pct": change_pct,
+                                "change_str": f"{'+' if change_pct > 0 else ''}{change_pct}%",}
+                        else:
+                            results[code] = {"name": name, "error": "无数据"}
+                    except Exception as e:
+                        results[code] = {"name": name, "error": str(e)}
+        except Exception as e:
+            return {"indexes": results, "error": str(e), "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")}
 
         return {"indexes": results, "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")}
 
@@ -393,7 +636,8 @@ class ToolRegistry:
         if price is None:
             try:
                 import yfinance as yf
-                t = yf.Ticker(code)
+                yf_code = _normalize_symbol(code, {})
+                t = yf.Ticker(yf_code)
                 hist = t.history(period="1d")
                 if not hist.empty:
                     price = round(float(hist["Close"].iloc[-1]), 3)

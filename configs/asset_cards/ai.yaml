@@ -1,0 +1,55 @@
+asset_id: AI
+asset_name: AI应用
+asset_type: theme
+default_horizon: medium
+version: 1
+description: AI应用中期趋势分析框架
+
+factors:
+  - factor_id: COMPUTE_DEMAND
+    factor_name: 算力需求
+    category: industry
+    data_binding:
+      type: view_query
+      query_terms: ["算力", "推理", "大模型"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 算力和推理需求升温通常支撑AI应用景气预期
+      strength: high
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: APP_COMMERCIALIZATION
+    factor_name: 应用商业化
+    category: fundamental
+    data_binding:
+      type: view_query
+      query_terms: ["AI应用", "商业化", "订阅"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 商业化和订阅数据改善通常增强AI应用兑现能力
+      strength: high
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: US_AI_MAPPING
+    factor_name: 美股AI映射
+    category: market
+    data_binding:
+      type: market
+      symbol: "NVDA"
+      source: "yfinance"
+      fields: ["close", "pct_change_5d", "pct_change_20d"]
+    impact_rule:
+      relation: positive
+      description: NVDA走强通常映射全球AI风险偏好和产业趋势
+      strength: medium
+    refresh_policy:
+      mode: scheduled
+      frequency: daily

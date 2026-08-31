@@ -1,0 +1,55 @@
+asset_id: BAIJIU
+asset_name: 白酒
+asset_type: sector
+default_horizon: medium
+version: 1
+description: 白酒中期趋势分析框架
+
+factors:
+  - factor_id: CONSUMPTION_CYCLE
+    factor_name: 消费景气
+    category: fundamental
+    data_binding:
+      type: view_query
+      query_terms: ["白酒", "消费", "动销"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 消费和动销改善通常支撑白酒板块基本面预期
+      strength: high
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: YOUNG_CONSUMER
+    factor_name: 年轻人消费
+    category: demand
+    data_binding:
+      type: view_query
+      query_terms: ["白酒", "年轻人", "消费习惯"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 年轻人消费接受度提升通常改善白酒长期需求预期
+      strength: medium
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: BAIJIU_INDEX
+    factor_name: 白酒指数
+    category: market
+    data_binding:
+      type: market
+      symbol: "512690.SS"
+      source: "yfinance"
+      fields: ["close", "pct_change_5d", "pct_change_20d"]
+    impact_rule:
+      relation: positive
+      description: 白酒指数走强通常反映板块资金和景气预期改善
+      strength: medium
+    refresh_policy:
+      mode: scheduled
+      frequency: daily

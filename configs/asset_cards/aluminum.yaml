@@ -1,0 +1,70 @@
+asset_id: ALUMINUM
+asset_name: 铝
+asset_type: commodity
+default_horizon: medium
+version: 1
+description: 铝中期趋势分析框架
+
+stock_views: &aluminum_stocks
+  - code: 601899.SS
+    name: 紫金矿业
+  - code: 601600.SS
+    name: 中国铝业
+  - code: 000807.SZ
+    name: 云铝股份
+  - code: 000933.SZ
+    name: 神火股份
+  - code: 002532.SZ
+    name: 天山铝业
+
+factors:
+  - factor_id: ZIJIN
+    factor_name: 紫金矿业代理
+    category: market
+    data_binding:
+      type: market
+      symbol: "601899.SS"
+      source: "price_trends"
+      fields: ["close", "pct_change_5d", "pct_change_20d"]
+    impact_rule:
+      relation: positive
+      description: 紫金矿业作为有色资源代理可辅助观察资源板块风险偏好
+      strength: medium
+
+  - factor_id: ALUMINA
+    factor_name: 氧化铝成本
+    category: industry
+    data_binding:
+      type: view_query
+      query_terms: ["氧化铝", "电解铝", "铝价", "产能"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 氧化铝成本、铝价和产能变化影响电解铝利润与供给预期
+      strength: high
+
+  - factor_id: NEW_ENERGY
+    factor_name: 新能源用铝
+    category: industry
+    data_binding:
+      type: view_query
+      query_terms: ["新能源", "光伏边框", "汽车轻量化", "铝"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 新能源、光伏和汽车轻量化需求影响铝材终端需求
+      strength: medium
+
+  - factor_id: STOCK_VIEWS
+    factor_name: 铝个股
+    category: stock
+    data_binding:
+      type: stock_views
+      stocks: *aluminum_stocks
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 汇总铝及有色板块重点个股的看多、看空和中性观点
+      strength: medium

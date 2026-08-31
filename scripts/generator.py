@@ -49,12 +49,12 @@ parts.append("---基于以上信息生成今日投资建议---")
 user_prompt = "\n".join(parts)
 
 # 3. 调 API
-key = os.environ.get('OPENROUTER_API_KEY') or ''
+key = os.environ.get('DEEPSEEK_API_KEY') or ''
 resp = requests.post(
-    "https://openrouter.ai/api/v1/chat/completions",
+    "https://api.deepseek.com/v1/chat/completions",
     headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
     json={
-        "model": "deepseek/deepseek-v4",
+        "model": "deepseek-v4-flash",
         "messages": [
             {"role": "system", "content": sys_prompt},
             {"role": "user", "content": user_prompt},

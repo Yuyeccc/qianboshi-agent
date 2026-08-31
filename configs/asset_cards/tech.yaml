@@ -1,0 +1,85 @@
+asset_id: TECH
+asset_name: 科技
+asset_type: sector
+default_horizon: medium
+version: 1
+description: 科技中期趋势分析框架
+
+stock_views: &tech_stocks
+  - code: 300308.SZ
+    name: 中际旭创
+  - code: 300502.SZ
+    name: 新易盛
+  - code: 688981.SS
+    name: 中芯国际
+  - code: 688256.SS
+    name: 寒武纪
+  - code: 688041.SS
+    name: 海光信息
+  - code: 688008.SS
+    name: 澜起科技
+
+factors:
+  - factor_id: SEMI_ETF
+    factor_name: 半导体ETF
+    category: market
+    data_binding:
+      type: market
+      symbol: "512480.SS"
+      source: "price_trends"
+      fields: ["close", "pct_change_5d", "pct_change_20d"]
+    impact_rule:
+      relation: positive
+      description: 半导体ETF走强通常反映科技板块风险偏好改善
+      strength: high
+
+  - factor_id: LIGHT_MODULE
+    factor_name: 光模块景气
+    category: industry
+    data_binding:
+      type: market
+      symbol: "300502.SZ"
+      source: "price_trends"
+      fields: ["close", "pct_change_5d", "pct_change_20d"]
+    impact_rule:
+      relation: positive
+      description: 光模块代表AI算力硬件景气和订单弹性
+      strength: high
+
+  - factor_id: US_AI
+    factor_name: 美股AI映射
+    category: market
+    data_binding:
+      type: market
+      symbol: "NVDA"
+      source: "price_trends"
+      fields: ["close", "pct_change_5d", "pct_change_20d"]
+    impact_rule:
+      relation: positive
+      description: NVDA走势通常映射全球AI风险偏好和产业趋势
+      strength: medium
+
+  - factor_id: STORAGE
+    factor_name: 存储周期
+    category: industry
+    data_binding:
+      type: view_query
+      query_terms: ["存储", "涨价", "长鑫", "HBM"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 存储涨价和HBM需求升温通常支撑科技硬件景气
+      strength: high
+
+  - factor_id: STOCK_VIEWS
+    factor_name: 科技个股
+    category: stock
+    data_binding:
+      type: stock_views
+      stocks: *tech_stocks
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 汇总科技板块重点个股的看多、看空和中性观点
+      strength: medium

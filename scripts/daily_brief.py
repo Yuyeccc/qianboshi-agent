@@ -33,7 +33,7 @@ def is_trading_day():
 def is_a_stock_session():
     """A股是否在交易时段（北京时间 9:30-15:00）"""
     now = datetime.now()
-    return now.weekday() < 5 and 9 <= now.hour < 15 or (now.hour == 9 and now.minute >= 30)
+    return now.weekday() < 5 and ((now.hour == 9 and now.minute >= 30) or (10 <= now.hour < 15))
 
 def is_us_stock_session():
     """美股是否在交易时段（北京时间 21:30-次日04:00 夏令时）"""
@@ -44,10 +44,15 @@ def is_us_stock_session():
 
 # ─── 行情数据采集 ─────────────────────────────────────────
 
-def _yf_fetch(symbols, period="2d", timeout=15):
+def _yf_fetch(symbols, period="2d", timeout=15, proxy=None):
     """批量下载yfinance行情，带超时保护"""
     import yfinance as yf
     import threading
+
+    # 走代理
+    if proxy:
+        os.environ['HTTP_PROXY'] = proxy
+        os.environ['HTTPS_PROXY'] = proxy
 
     result = {"data": None, "error": None}
 
@@ -70,15 +75,38 @@ def _yf_fetch(symbols, period="2d", timeout=15):
     return result["data"], None
 
 
+def _to_yf_symbol(code, holding=None):
+    """持仓代码 -> yfinance 代码。
+
+    - 优先用持仓里的 market_code（场外基金用场内代理，如 000217→518880.SS）
+    - 6位纯数字按交易所规则补后缀：0/1/3开头=深市.SZ，5/6/9开头=沪市.SS
+    - 已带后缀的原样返回
+    """
+    h = holding or {}
+    mc = h.get("market_code")
+    if mc:
+        return mc
+    c = str(code)
+    if c.endswith((".SS", ".SZ", ".HK")):
+        return c
+    if c.isdigit() and len(c) == 6:
+        if c[0] in "013":
+            return f"{c}.SZ"
+        if c[0] in "569":
+            return f"{c}.SS"
+    return c
+
+
 def fetch_market_indexes(config):
     """拉取中美六大指数（批量+超时保护）"""
+    proxy = get_proxy(config)
     symbols = ["000001.SS", "399001.SZ", "399006.SZ", "^DJI", "^IXIC", "^GSPC"]
     names = {
         "000001.SS": "上证指数", "399001.SZ": "深证成指", "399006.SZ": "创业板指",
         "^DJI": "道琼斯", "^IXIC": "纳斯达克", "^GSPC": "标普500",
     }
 
-    data, err = _yf_fetch(symbols, period="2d", timeout=20)
+    data, err = _yf_fetch(symbols, period="2d", timeout=20, proxy=proxy)
 
     if err or data is None or data.empty:
         return {"indexes": [], "error": err or "无数据", "timestamp": datetime.now().strftime("%H:%M")}
@@ -117,6 +145,7 @@ def fetch_market_indexes(config):
 
 def fetch_portfolio_status(config):
     """查询持仓盈亏（批量+超时保护）"""
+    proxy = get_proxy(config)
     data_dir = get_data_dir(config)
     pf_path = data_dir / "portfolio.json"
     if not pf_path.exists():
@@ -128,20 +157,26 @@ def fetch_portfolio_status(config):
         return {"holdings": [], "empty": True}
 
     codes = list(holdings.keys())
-    data, err = _yf_fetch(codes, period="2d", timeout=15)
+    yf_codes = [_to_yf_symbol(c, holdings[c]) for c in codes]
+    # 场外基金（market_code）需要买入日基准价推算净值，拉长周期
+    need_hist = any(h.get("market_code") for h in holdings.values())
+    data, err = _yf_fetch(yf_codes, period="1mo" if need_hist else "2d", timeout=15, proxy=proxy)
 
     if err or data is None or data.empty:
-        return {"holdings": [], "empty": True, "error": err or "行情获取失败"}
+        # 行情失败≠没有持仓：报错而不是谎报"持仓为空"
+        return {"holdings": [], "empty": False,
+                "error": err or "行情获取失败",
+                "codes": [f"{c}({h.get('name', c)})" for c, h in holdings.items()]}
 
     results = []
     total_value = 0
     total_cost = 0
 
-    for code in codes:
+    for code, yf_code in zip(codes, yf_codes):
         h = holdings[code]
         try:
             if isinstance(data.columns, pd.MultiIndex):
-                col = data.xs(code, level=1, axis=1)
+                col = data.xs(yf_code, level=1, axis=1)
             else:
                 col = data
 
@@ -153,6 +188,23 @@ def fetch_portfolio_status(config):
             price = round(float(closes.iloc[-1]), 3)
             shares = h.get("shares", 0)
             cost = h.get("avg_cost", 0)
+
+            if h.get("market_code"):
+                # 场外联接基金：净值 = 成本净值 × (1 + 场内自 nav_date 起涨跌幅)
+                # 基准取 nav_date 当天或之前最近收盘价（避免场外份额×场内价格混算）
+                anchor = str(h.get("nav_date") or h.get("buy_date") or "")
+                closes_list = [(str(d.date()), float(v)) for d, v in closes.items()]
+                base = None
+                for ds, v in closes_list:
+                    if ds <= anchor:
+                        base = v
+                    else:
+                        break
+                if base is None and closes_list:
+                    base = closes_list[0][1]
+                if base:
+                    price = round(cost * (closes_list[-1][1] / base), 4)
+
             mv = round(price * shares, 2)
             cv = round(cost * shares, 2)
             pnl = round(mv - cv, 2)
@@ -184,6 +236,7 @@ def fetch_portfolio_status(config):
 
 def fetch_tracking_alerts(config):
     """扫描标的池，返回异动列表（批量+超时保护）"""
+    proxy = get_proxy(config)
     data_dir = get_data_dir(config)
     tp_path = data_dir / "tracking_pool.json"
     if not tp_path.exists():
@@ -201,7 +254,7 @@ def fetch_tracking_alerts(config):
         return {"alerts": [], "gainers": [], "losers": []}
 
     codes = list(all_items.keys())
-    data, err = _yf_fetch(codes, period="5d", timeout=20)
+    data, err = _yf_fetch(codes, period="5d", timeout=20, proxy=proxy)
 
     if err or data is None or data.empty:
         return {"alerts": [], "gainers": [], "losers": [], "error": err}
@@ -253,9 +306,12 @@ def fmt_indexes_section(indexes_data):
     indexes = indexes_data.get("indexes", [])
     if not indexes:
         err = indexes_data.get("error", "")
+        note = indexes_data.get("note", "")
+        if note:
+            return f"\n【📊 全球指数】\n  ℹ️ {note}"
         if err:
             return f"\n【📊 全球指数】\n  ⚠️ 行情数据暂不可用（{err}）"
-        return "\n【📊 全球指数】\n  暂无数据"
+        return "\n【📊 全球指数】\n  ℹ️ 非交易时段，数据暂停获取"
 
     lines = ["", "【📊 全球指数】"]
     # A股
@@ -278,7 +334,11 @@ def fmt_portfolio_section(pf_data):
     if pf_data.get("empty"):
         return ""
     if pf_data.get("error"):
-        return f"\n【💼 持仓盈亏】\n  ⚠️ 行情获取失败（{pf_data['error'][:40]}）"
+        lines = [f"\n【💼 持仓盈亏】\n  ⚠️ 行情获取失败（{pf_data['error'][:40]}）"]
+        codes = pf_data.get("codes") or []
+        if codes:
+            lines.append(f"  持仓待确认：{'、'.join(codes)}")
+        return "\n".join(lines)
 
     lines = ["", "【💼 持仓盈亏】"]
     for h in pf_data.get("holdings", []):
@@ -382,7 +442,7 @@ BRIEF_TEMPLATE = """📊 **钱博士盘前简报** | {date_str}
 > "{quote}"
 
 ━━━━━━━━━━━━━━━━━━━━━━━
-🤖 投资研究Agent | 数据: yfinance + RAG(88篇/10位分析师)
+🤖 投资研究Agent | 数据: yfinance + RAG({rag_count}篇)
 ⚡ 不构成投资建议 | 投资有风险
 """
 
@@ -390,27 +450,46 @@ BRIEF_TEMPLATE = """📊 **钱博士盘前简报** | {date_str}
 def generate_brief(config, rag, skip_market=False):
     """生成完整简报"""
     now = datetime.now()
+    
+    # ── 判断当前交易时段 ──
+    a_open = is_a_stock_session()
+    us_open = is_us_stock_session()
+    any_open = a_open or us_open
+    session_note = ""
+    if a_open:
+        session_note = "A股交易时段"
+    elif us_open:
+        session_note = "美股交易时段"
+    else:
+        session_note = "非交易时段"
 
     # ── 行情数据 ──
     indexes_data = {"indexes": [], "timestamp": now.strftime("%H:%M")}
     pf_data = {"empty": True}
     tracking_data = {"alerts": [], "gainers": [], "losers": []}
 
-    if not skip_market:
+    if not skip_market and any_open:
+        # 仅在开市时段拉行情
         try:
             indexes_data = fetch_market_indexes(config)
         except Exception as e:
             indexes_data = {"indexes": [], "error": str(e)}
 
-        try:
-            pf_data = fetch_portfolio_status(config)
-        except Exception as e:
-            pf_data = {"empty": True, "error": str(e)}
+        if a_open:
+            try:
+                pf_data = fetch_portfolio_status(config)
+            except Exception as e:
+                pf_data = {"empty": True, "error": str(e)}
 
-        try:
-            tracking_data = fetch_tracking_alerts(config)
-        except Exception as e:
-            tracking_data = {"alerts": [], "error": str(e)}
+            try:
+                tracking_data = fetch_tracking_alerts(config)
+            except Exception as e:
+                tracking_data = {"alerts": [], "error": str(e)}
+    elif not skip_market:
+        # 非交易时段跳过行情，提示使用缓存或历史数据
+        indexes_data = {"indexes": [], "note": f"当前{session_note}，行情数据暂停获取，盘前自动恢复"}
+        pf_data = {"empty": True, "message": f"当前{session_note}，持仓盈亏待开盘后更新"}
+        tracking_data = {"alerts": [], "message": f"当前{session_note}，标的池异动检测暂停"}
 
     # ── RAG观点（不限来源）──
     rag_results = {
@@ -424,6 +503,18 @@ def generate_brief(config, rag, skip_market=False):
     weekday_cn = ["一", "二", "三", "四", "五", "六", "日"][now.weekday()]
     date_str = now.strftime(f"%Y年%m月%d日 周{weekday_cn}")
 
+    # 获取RAG实际数量（返回笔记数不是chunk数）
+    try:
+        import json
+        idx_path = Path(__file__).parent.parent / "data" / "vector_db" / "index.json"
+        if idx_path.exists():
+            idx = json.loads(idx_path.read_text(encoding="utf-8"))
+            rag_count = len(idx)
+        else:
+            rag_count = rag.collection.count()
+    except:
+        rag_count = "?"
+
     brief = BRIEF_TEMPLATE.format(
         date_str=date_str,
         indexes=fmt_indexes_section(indexes_data),
@@ -433,6 +524,7 @@ def generate_brief(config, rag, skip_market=False):
         sector=fmt_rag_section(rag_results, "重点板块", "【🥇", "板块", max_chars=200),
         risks=fmt_rag_section(rag_results, "风险提醒", "【⚠️", "风险", max_chars=200),
         quote=get_random_quote(config),
+        rag_count=rag_count,
     )
 
     return brief

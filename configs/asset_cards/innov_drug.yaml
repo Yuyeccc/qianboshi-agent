@@ -1,0 +1,83 @@
+asset_id: INNOV_DRUG
+asset_name: 创新药
+asset_type: sector
+default_horizon: medium
+version: 1
+description: 创新药中期趋势分析框架
+
+stock_views: &innov_drug_stocks
+  - code: 600276.SS
+    name: 恒瑞医药
+  - code: 688235.SS
+    name: 百济神州
+  - code: 1801.HK
+    name: 信达生物
+  - code: 603259.SS
+    name: 药明康德
+  - code: 9926.HK
+    name: 康方生物
+
+factors:
+  - factor_id: INNO_INDEX
+    factor_name: 创新药指数
+    category: market
+    data_binding:
+      type: market
+      symbol: "159992.SZ"
+      source: "price_trends"
+      fields: ["close", "pct_change_5d", "pct_change_20d"]
+    impact_rule:
+      relation: positive
+      description: 创新药指数走强通常反映板块风险偏好改善
+      strength: high
+
+  - factor_id: HK_INNO
+    factor_name: 港股创新药
+    category: market
+    data_binding:
+      type: market
+      symbol: "3069.HK"
+      source: "price_trends"
+      fields: ["close", "pct_change_5d", "pct_change_20d"]
+    impact_rule:
+      relation: positive
+      description: 港股创新药表现可补充观察海外资金对板块的定价
+      strength: medium
+
+  - factor_id: BD_DEALS
+    factor_name: BD出海
+    category: industry
+    data_binding:
+      type: view_query
+      query_terms: ["BD", "出海", "授权", "license", "海外权益"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: BD授权和海外权益交易活跃通常提升创新药商业化预期
+      strength: high
+
+  - factor_id: POLICY
+    factor_name: 医保政策
+    category: policy
+    data_binding:
+      type: view_query
+      query_terms: ["医保", "谈判", "集采", "创新药政策"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 医保谈判、集采和创新药政策变化影响板块估值与放量预期
+      strength: high
+
+  - factor_id: STOCK_VIEWS
+    factor_name: 创新药个股
+    category: stock
+    data_binding:
+      type: stock_views
+      stocks: *innov_drug_stocks
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 汇总板块内重点个股的看多、看空和中性观点
+      strength: medium

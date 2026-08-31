@@ -1,0 +1,71 @@
+asset_id: SEMI
+asset_name: 半导体
+asset_type: sector
+default_horizon: medium
+version: 1
+description: 半导体中期趋势分析框架
+
+factors:
+  - factor_id: SOX
+    factor_name: 费城半导体指数
+    category: market
+    data_binding:
+      type: market
+      symbol: "^SOX"
+      source: "yfinance"
+      fields: ["close", "pct_change_5d", "pct_change_20d"]
+    impact_rule:
+      relation: positive
+      description: 费城半导体指数走强通常映射全球半导体风险偏好改善
+      strength: high
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: DOMESTIC_SUBSTITUTION
+    factor_name: 国产替代
+    category: policy
+    data_binding:
+      type: view_query
+      query_terms: ["国产替代", "自主可控", "半导体设备", "材料", "中芯"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 国产替代逻辑升温通常支撑国内半导体景气预期
+      strength: high
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: NVIDIA_CHAIN
+    factor_name: 英伟达产业链
+    category: industry
+    data_binding:
+      type: view_query
+      query_terms: ["英伟达", "NVDA", "算力", "HBM", "AI芯片"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 30
+    impact_rule:
+      relation: positive
+      description: 英伟达产业链景气强化通常利好AI相关半导体资产
+      strength: medium
+    refresh_policy:
+      mode: scheduled
+      frequency: daily
+
+  - factor_id: CLOUD_CAPEX
+    factor_name: 北美云厂商资本开支
+    category: industry
+    data_binding:
+      type: view_query
+      query_terms: ["云厂商资本开支", "Capex", "北美云", "微软", "谷歌", "Meta", "AWS"]
+      view_types: ["framework", "sector", "market"]
+      lookback_days: 45
+    impact_rule:
+      relation: positive
+      description: 北美云厂商资本开支上修通常支撑AI算力和半导体需求
+      strength: high
+    refresh_policy:
+      mode: scheduled
+      frequency: daily

@@ -24,11 +24,57 @@ from datetime import datetime, date
 from pathlib import Path
 
 
+BANNED_SOURCES = ("主力行为学", "汤山老王", "马跑跑", "邻居大爷", "八叔不啰嗦")
+
+QUERY_KEYWORDS = {
+    "创新药": ["创新药", "医药", "CXO", "CRO", "159992", "药"],
+    "医药": ["创新药", "医药", "CXO", "CRO", "159992", "药"],
+    "光模块": ["光模块", "光通讯", "CPO", "新易盛", "中际旭创", "天孚", "源杰", "300502", "300308"],
+    "光通讯": ["光模块", "光通讯", "CPO", "新易盛", "中际旭创", "天孚", "源杰", "300502", "300308"],
+    "机器人": ["机器人", "具身", "减速器", "伺服", "159770", "优必选"],
+    "半导体": ["半导体", "芯片", "中芯", "设备", "先进制程", "688981", "159813"],
+    "芯片": ["半导体", "芯片", "中芯", "设备", "先进制程", "688981", "159813"],
+    "存储": ["存储", "长鑫", "DDR", "HBM", "内存", "兆易"],
+    "紫金矿业": ["紫金", "黄金", "铜", "有色", "工业金属", "601899"],
+    "工业金属": ["紫金", "黄金", "铜", "有色", "工业金属", "601899"],
+    "AMD": ["AMD", "OpenAI", "通富微电", "封测", "GPU"],
+    "NVDA": ["NVDA", "英伟达", "NVIDIA", "算力", "GPU", "CPO"],
+}
+
+def _contains_banned_source(source):
+    return any(b in (source or "") for b in BANNED_SOURCES)
+
+def _keyword_overlap_ok(query, source, section, content):
+    haystack = f"{source} {section} {content}".lower()
+    query_upper = query.upper()
+    for trigger, keywords in QUERY_KEYWORDS.items():
+        if trigger.lower() in query.lower() or trigger.upper() in query_upper:
+            return any(k.lower() in haystack for k in keywords)
+    return True
+
+
+def _extract_query_dates(query):
+    """从查询里提取明确日期，用于硬过滤，如 7月20日 / 7.20 / 2026.07.20。"""
+    dates = set()
+    for y, m, d in re.findall(r'(20\d{2})[.年/-](\d{1,2})[.月/-](\d{1,2})', query):
+        dates.add(date(int(y), int(m), int(d)))
+    for m, d in re.findall(r'(?<!\d)(\d{1,2})[.月/](\d{1,2})(?:日)?', query):
+        mi, di = int(m), int(d)
+        if 1 <= mi <= 12 and 1 <= di <= 31:
+            dates.add(date(2026, mi, di))
+    return dates
+
+
 class QianboshiRAG:
     """钱博士RAG查询引擎"""
 
     def __init__(self, config=None):
         self.config = config or self._load_config()
+        # 如果传入的是原始config.yaml dict（没有vector_db_path），重新加载
+        if config is not None and "vector_db_path" not in config:
+            loaded = self._load_config()
+            loaded.update({k: v for k, v in config.items() if k not in loaded})
+            self.config = loaded
         self._collection = None
         self._client = None
 
@@ -106,17 +152,37 @@ class QianboshiRAG:
 
     @staticmethod
     def _extract_date(source):
-        """从文件名提取日期，返回 date 对象"""
+        """从文件名或pubdate缓存提取日期，返回 date 对象"""
         if not source:
             return date(2026, 6, 1)
+        # 格式1: 2026.6.25
         match = re.search(r'(\d{4})\.(\d{1,2})\.(\d{1,2})', source)
         if match:
             y, m, d = int(match.group(1)), int(match.group(2)), int(match.group(3))
             return date(y, m, d)
-        # 尝试 "6月14日" 这种格式
+        # 格式2: "6月14日" 
         match = re.search(r'(\d{1,2})月(\d{1,2})日', source)
         if match:
             return date(2026, int(match.group(1)), int(match.group(2)))
+        # 格式3: 从文件名提取BV号，查pubdate缓存
+        bv_match = re.search(r'(BV[0-9A-Za-z]+)', source)
+        if bv_match:
+            bv = bv_match.group(1)
+            try:
+                import json
+                from pathlib import Path
+                for p in [Path(__file__).parent.parent / "data" / "bv_pubdates.json",
+                          Path(__file__).parent.parent / "data" / "shenyan_video_meta.json"]:
+                    if p.exists():
+                        data = json.loads(p.read_text(encoding="utf-8"))
+                        entry = data.get(bv)
+                        if entry:
+                            pubdate = entry["pubdate"] if isinstance(entry, dict) else entry
+                            if isinstance(pubdate, (int, float)):
+                                from datetime import datetime as _dt
+                                return _dt.fromtimestamp(pubdate).date()
+            except Exception:
+                pass
         return date(2026, 6, 1)
 
     def _calc_freshness(self, source):
@@ -151,7 +217,7 @@ class QianboshiRAG:
             "type_weighted": round(type_score * weights["type_boost"], 4),
         }
 
-    def query(self, text, top_k=None, score_threshold=0.0):
+    def query(self, text, top_k=None, score_threshold=0.0, max_days=None):
         """
         语义检索（带权重排序）
 
@@ -159,16 +225,31 @@ class QianboshiRAG:
             text: 查询文本
             top_k: 返回结果数（默认config中的值）
             score_threshold: 相似度阈值（0-1），低于此值的结果被过滤
+            max_days: 仅返回最近N天的结果
 
         返回:
             [{"content": str, "source": str, "section": str, "score": float, "raw_score": float, "type": str}, ...]
         """
         top_k = top_k or self.config.get("top_k", 5)
-        results = self.collection.query(
-            query_texts=[text],
-            n_results=top_k * 3,  # 多取一些，给排序留余地
-            include=["documents", "metadatas", "distances"],
-        )
+        if _contains_banned_source(text):
+            return []
+        query_dates = _extract_query_dates(text)
+        
+        # 构建查询参数
+        query_kwargs = {
+            "query_texts": [text],
+            "n_results": min(max(top_k * 200, 1000), 5000),
+            "include": ["documents", "metadatas", "distances"],
+        }
+        
+        # 如果指定了max_days，添加日期过滤
+        if max_days:
+            from datetime import timedelta
+            cutoff = date.today() - timedelta(days=max_days)
+            # 无法直接用date过滤metadata，改用获取全部后筛选
+            query_kwargs["n_results"] = 10000
+        
+        results = self.collection.query(**query_kwargs)
 
         if not results["documents"] or not results["documents"][0]:
             return []
@@ -180,15 +261,22 @@ class QianboshiRAG:
         items = []
         for doc, meta, dist in zip(docs, metas, distances):
             sim_score = 1.0 - dist
-            if sim_score < score_threshold:
+            if sim_score < score_threshold or sim_score < 0.45:
+                continue
+            if "本文基于直播转录整理" in doc and len(doc) < 120:
                 continue
 
             source = meta.get("source", "unknown")
+            section = meta.get("section", "")
             doc_type = self._classify_source(source)
             doc_date = self._extract_date(source)
+            if query_dates and doc_date not in query_dates:
+                continue
 
-            # 排除目录型文档
-            if doc_type == "catalog":
+            # 排除目录型文档、禁用分析师、明显弱相关结果
+            if doc_type == "catalog" or _contains_banned_source(source):
+                continue
+            if not _keyword_overlap_ok(text, source, section, doc):
                 continue
 
             final_score, weight_detail = self._calc_final_score(sim_score, source)
@@ -200,7 +288,7 @@ class QianboshiRAG:
                 {
                     "content": doc,
                     "source": source,
-                    "section": meta.get("section", ""),
+                    "section": section,
                     "score": final_score,
                     "raw_score": round(sim_score, 4),
                     "date": date_str,
@@ -224,11 +312,14 @@ class QianboshiRAG:
 
         items = []
         for doc, meta in zip(results["documents"], results["metadatas"]):
+            source = meta.get("source", "unknown")
+            if _contains_banned_source(source):
+                continue
             items.append(
                 {
                     "content": doc,
-                    "source": meta.get("source", "unknown"),
-                    "section": meta.get("section", ""),
+                    "source": source,
+                    "section": meta.get("section"),
                 }
             )
         return items
@@ -265,9 +356,9 @@ def format_results(results, verbose=False, show_weights=False):
         if show_weights and r.get("weights"):
             w = r["weights"]
             lines.append(f"    ── 权重构成 ──")
-            lines.append(f"    向量相似×0.6: {w['sim_weighted']:.2%}")
-            lines.append(f"    时间新鲜×0.2: {w['freshness_weighted']:.2%} (新鲜度{w['freshness']:.0%})")
-            lines.append(f"    类型加成×0.2: {w['type_weighted']:.2%} (类型分{w['type_score']:.1f})")
+            lines.append(f"    向量相似加权: {w['sim_weighted']:.2%}")
+            lines.append(f"    时间新鲜加权: {w['freshness_weighted']:.2%} (新鲜度{w['freshness']:.0%})")
+            lines.append(f"    类型加成加权: {w['type_weighted']:.2%} (类型分{w['type_score']:.1f})")
             lines.append(f"    综合 = {' + '.join([f'{w[k]:.2%}' for k in ['sim_weighted','freshness_weighted','type_weighted']])}")
 
         if r.get("date"):
