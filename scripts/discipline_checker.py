@@ -12,8 +12,7 @@
 - 净投入 <= 0 → status=unknown + data_quality，不触发违规（防除零/负基准）。
 - 缺 proceeds / 部分卖出无法可靠计算 → data_quality 标记，不硬判。
 
-遗留登记（不在本刀范围）：portfolio_max_cost 规则未实现（配置已存在）；
-账本治理 P1：history 缺 159992 买入记录 → 后续补流水/position ledger。
+遗留登记：position ledger（完整账本模型）为 P2；portfolio_max_cost 见下方第 4 层规则。
 
 用法:
     python scripts/discipline_checker.py                 # 检查当前持仓
@@ -195,6 +194,22 @@ def check_discipline(portfolio: dict, rules: dict) -> dict:
                 "drawdown": dd["cost_drawdown"],
                 "max_drawdown": max_dd,
                 "message": f"组合成本回撤 {dd['cost_drawdown']:.1%} 超开关阈值 {max_dd:.1%}，需人工确认",
+            })
+
+    # 4. 组合持仓总成本上限（portfolio_max_cost，60 号方案 2026-09-01）
+    #    边界：> 严格大于才触发（相等不触发，与 theme_cap 一致）；配置缺失/<=0 跳过
+    pmc = rules.get("portfolio_max_cost")
+    if pmc is not None:
+        try:
+            pmc_f = float(pmc)
+        except (TypeError, ValueError):
+            pmc_f = 0.0
+        if pmc_f > 0 and current_open_cost > pmc_f:
+            violations.append({
+                "type": "portfolio_max_cost",
+                "current": round(current_open_cost, 2),
+                "max": pmc_f,
+                "message": f"组合持仓总成本 {current_open_cost:.2f} 超上限 {pmc_f:.2f}，需人工确认",
             })
 
     return {

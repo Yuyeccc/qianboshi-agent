@@ -24,6 +24,7 @@ from discipline_checker import check_discipline  # noqa: E402
 RULES = {
     "theme_caps": {"黄金": 0.20, "半导体": 0.25, "default": 0.25},
     "single_position_cap": 0.30,
+    "portfolio_max_cost": 10000,
     "drawdown_switch": {"enabled": True, "max_drawdown_pct": 0.15},
 }
 
@@ -228,6 +229,38 @@ class ReadOnlyTests(unittest.TestCase):
         build_decision_desk_context()
         after = {str(p): _file_sha256(p) for p in (pf, rules, db) if p.exists()}
         self.assertEqual(before, after)
+
+
+class PortfolioMaxCostTests(unittest.TestCase):
+    """第 4 层：组合持仓总成本上限（60 号方案）"""
+
+    def test_13_real_portfolio_not_triggered(self):
+        """真实数据：500 < 10000 → 不触发"""
+        portfolio = json.loads((ROOT / "data" / "portfolio.json").read_text(encoding="utf-8-sig"))
+        r = check_discipline(portfolio, RULES)
+        self.assertFalse(any(v["type"] == "portfolio_max_cost" for v in r["violations"]))
+
+    def test_14_over_limit_triggers(self):
+        """合成超限：15000 > 10000 → 触发 portfolio_max_cost"""
+        p = {"holdings": {"A": {"buy_amount": 15000, "sector": "黄金"}}}
+        r = check_discipline(p, RULES)
+        v = [x for x in r["violations"] if x["type"] == "portfolio_max_cost"]
+        self.assertEqual(len(v), 1)
+        self.assertEqual(v[0]["current"], 15000.0)
+        self.assertEqual(v[0]["max"], 10000.0)
+
+    def test_15_boundary_equal_not_triggered(self):
+        """边界相等：10000 == 10000 → 不触发"""
+        p = {"holdings": {"A": {"buy_amount": 10000, "sector": "黄金"}}}
+        r = check_discipline(p, RULES)
+        self.assertFalse(any(v["type"] == "portfolio_max_cost" for v in r["violations"]))
+
+    def test_16_missing_or_zero_config_skipped(self):
+        """配置缺失/0/非法 → 跳过不崩"""
+        for rules_var in ({}, {"portfolio_max_cost": 0}, {"portfolio_max_cost": "abc"}, {"portfolio_max_cost": -5}):
+            p = {"holdings": {"A": {"buy_amount": 20000, "sector": "黄金"}}}
+            r = check_discipline(p, rules_var)
+            self.assertFalse(any(v["type"] == "portfolio_max_cost" for v in r["violations"]))
 
 
 if __name__ == "__main__":
