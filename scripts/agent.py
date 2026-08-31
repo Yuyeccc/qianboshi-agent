@@ -32,6 +32,27 @@ from tool_registry import ToolRegistry
 from decision_desk import build_decision_desk_context
 
 
+def _gate_brief(brief: str, tool: str = "morning_brief") -> str:
+    """简报合规门（62 号方案 2026-09-01，#17v2 遗留补缺）。
+
+    简报 LLM 链路硬阻断纪律违规建议组合（此前只靠模板契约约束）：
+      clean   → 原文直通
+      annotate → 加合规横幅（简报已含"不构成投资建议"则不重复）
+      block   → 中性文本替换 + stderr 强警告（纪律违规建议不发布，人工复核）
+    fail-closed：异常时返回原文（安全侧不崩溃丢简报）。
+    """
+    try:
+        from compliance_gate import output_gate
+
+        r = output_gate(brief, source="brief", tool=tool)
+        if r["mode"] == "block":
+            print(f"[GATE-BLOCK] {tool}: 简报含纪律违规+交易动作组合，已合规拦截，需人工复核", file=sys.stderr)
+        return r["output"]
+    except Exception as e:
+        print(f"[WARN] 简报合规门异常(按安全侧放行): {e}", file=sys.stderr)
+        return brief
+
+
 # ─── System Prompt ────────────────────────────────────────
 
 SYSTEM_PROMPT = """你是多分析师投资研究助手，知识库覆盖保留名单内财经主播的公开观点（钱博士直播、钱博士短视频、李一恩、旗帜鲜明、任泽平、投机大拿、柏年说、财联社、笨笨的韭菜、史诗级韭菜、趋势天哥），时间跨度以知识库检索结果为准（最新：李一恩7.20、投机大拿7.20、旗帜鲜明7.20、钱博士7.19直播、笨笨的韭菜7.20）。
@@ -600,6 +621,7 @@ def main():
         print(json.dumps(data, ensure_ascii=False, indent=2))
     elif args.brief_rendered:
         brief = agent.morning_brief_rendered(days=args.days, per_entity=args.per_entity)
+        brief = _gate_brief(brief, tool="morning_brief_rendered")
         print(brief)
         try:
             import importlib
@@ -616,6 +638,7 @@ def main():
             print(f"[WARN] 简报保存失败: {e}", file=sys.stderr)
     elif args.brief_hybrid:
         brief = agent.morning_brief_hybrid(days=args.days, per_entity=args.per_entity)
+        brief = _gate_brief(brief, tool="morning_brief_hybrid")
         print(brief)
         try:
             import importlib
@@ -632,6 +655,7 @@ def main():
             print(f"[WARN] 简报保存失败: {e}", file=sys.stderr)
     elif args.brief:
         brief = agent.morning_brief()
+        brief = _gate_brief(brief, tool="morning_brief")
         print(brief)
         # 保存简报用于后续提取标的
         try:
