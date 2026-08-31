@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "updated_at": "2026-08-27",
+  "assets": {
+    "GOLD": {
+      "name": "黄金",
+      "primary_symbol": "518880.SS",
+      "proxy": null,
+      "benchmark_symbol": "000001.SS",
+      "effective_from": "2026-08-06",
+      "status": "active",
+      "reason": "华安黄金ETF场内代理518880；基准暂用上证指数"
+    },
+    "INNOV_DRUG": {
+      "name": "创新药",
+      "primary_symbol": "159992.SZ",
+      "proxy": null,
+      "benchmark_symbol": "000001.SS",
+      "effective_from": "2026-08-06",
+      "status": "active",
+      "reason": "创新药ETF银华159992直接对应"
+    },
+    "TECH": {
+      "name": "科技股",
+      "primary_symbol": "512480.SS",
+      "proxy": null,
+      "benchmark_symbol": "000001.SS",
+      "effective_from": "2026-08-06",
+      "status": "active",
+      "reason": "科技ETF512480为历史沿用代码，保持与v1复盘可比"
+    },
+    "BAIJIU": {
+      "name": "白酒",
+      "primary_symbol": "512690.SS",
+      "proxy": null,
+      "benchmark_symbol": "000001.SS",
+      "effective_from": "2026-08-06",
+      "status": "active",
+      "reason": "酒ETF512690为历史沿用代码"
+    },
+    "ALUMINUM": {
+      "name": "铝",
+      "primary_symbol": "000933.SZ",
+      "proxy": null,
+      "benchmark_symbol": "000001.SS",
+      "effective_from": "2026-08-06",
+      "previous_primary_symbol": "601899.SS",
+      "previous_status": "invalidated",
+      "invalidation_reason": "旧映射紫金矿业601899主业铜金，非铝代理；决策原文指定神火股份000933",
+      "status": "active",
+      "reason": "决策原文明确关注神火股份(000933.SZ)，改用并重算历史"
+    },
+    "SEMI": {
+      "name": "半导体",
+      "primary_symbol": "159813.SZ",
+      "proxy": null,
+      "benchmark_symbol": "000001.SS",
+      "effective_from": "2026-08-06",
+      "status": "active",
+      "reason": "半导体ETF159813为历史沿用代码"
+    },
+    "BATTERY": {
+      "name": "电池",
+      "primary_symbol": "512460.SS",
+      "proxy": null,
+      "benchmark_symbol": "000001.SS",
+      "effective_from": "2026-08-24",
+      "status": "active",
+      "reason": "华夏电池联接027695的场内对应512460；新增接入"
+    }
+  }
+}

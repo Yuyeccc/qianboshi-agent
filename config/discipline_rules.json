@@ -1,0 +1,20 @@
+{
+  "rule_version": "v1",
+  "updated_at": "2026-08-30",
+  "description": "组合纪律三层检查（830报告 #17）：主题仓位上限 + 单标的上限 + 组合回撤开关。系统只做规则比对，不输出调仓指令。",
+  "theme_caps": {
+    "新能源/电池": 0.30,
+    "黄金": 0.20,
+    "半导体": 0.25,
+    "科技": 0.25,
+    "default": 0.25
+  },
+  "single_position_cap": 0.30,
+  "portfolio_max_cost": 10000,
+  "drawdown_switch": {
+    "enabled": true,
+    "max_drawdown_pct": 0.15,
+    "note": "组合总成本回撤超15%触发纪律提醒（相对初始总成本）"
+  },
+  "notes": "用户按自身风险承受修改。theme_caps 按 portfolio.json 的 sector 字段匹配，未匹配用 default。"
+}

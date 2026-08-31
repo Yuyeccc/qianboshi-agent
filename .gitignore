@@ -69,3 +69,7 @@ data/todo_*.md
 data/portfolio.json.bak*
 data/price_trends.json.bak*
 data/创新药分析报告_20260806.md
+
+# 一次性/运行时
+run_gpt55_audit.py
+data/shenyan_video_meta.json

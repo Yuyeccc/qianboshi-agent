@@ -1,0 +1,22 @@
+{
+  "rule_version": "v2",
+  "updated_at": "2026-08-27",
+  "noise_band_pct": {
+    "short": 2.0,
+    "medium": 1.5,
+    "long": 1.0
+  },
+  "neutral_abs_band_pct": {
+    "short": 3.0,
+    "medium": 2.0,
+    "long": 1.5
+  },
+  "benchmark_max_offset_days": 5,
+  "price_nearest_window_days": 5,
+  "stale_price_max_days": 5,
+  "conviction_grades": {
+    "strong_wrong_min_conviction": 0.7,
+    "weak_wrong_max_conviction": 0.4
+  },
+  "notes": "v2: 绝对/相对收益分离判定; 阈值按horizon分档(short=5d, medium=20d, long=60d); 主标签right/wrong/mixed/too_early保持兼容, 细分写result_grade; 基准错位超限标benchmark_unavailable"
+}

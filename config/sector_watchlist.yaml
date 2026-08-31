@@ -1,0 +1,226 @@
+光模块:
+  market_proxy: 159770.SZ
+  benchmark: 399006.SZ
+  validation_thresholds:
+    open_window_minutes: 30
+    relative_strength_pct: 0.5
+    turnover_vs_5d: 1.2
+    min_core_symbols_confirming: 2
+  etfs:
+    - 159770.SZ
+  indexes:
+    - 通信设备指数
+  core_symbols:
+    - 中际旭创
+    - 新易盛
+    - 天孚通信
+  core_symbol_codes:
+    中际旭创: 300308.SZ
+    新易盛: 300502.SZ
+    天孚通信: 300394.SZ
+  related:
+    - 半导体
+    - PCB
+    - AI算力
+  strong_validation:
+    - 板块强于科创50/创业板
+    - ETF成交放大
+    - 核心标的不冲高回落
+  weak_validation:
+    - 缩量反弹
+    - 龙头不跟
+    - 板块强但个股分化大
+  invalid:
+    - 高开低走
+    - 核心票弱于板块
+    - 板块弱于大盘
+
+半导体:
+  market_proxy: 159813.SZ
+  benchmark: 000688.SS
+  validation_thresholds:
+    open_window_minutes: 30
+    relative_strength_pct: 0.5
+    turnover_vs_5d: 1.2
+    min_core_symbols_confirming: 2
+  etfs:
+    - 159813.SZ
+  indexes:
+    - 半导体指数
+    - 科创50
+  core_symbols:
+    - 中芯国际
+    - 寒武纪
+    - 海光信息
+  core_symbol_codes:
+    中芯国际: 688981.SS
+    寒武纪: 688256.SS
+    海光信息: 688041.SS
+  related:
+    - 光模块
+    - 存储
+    - 科创50
+  strong_validation:
+    - 半导体ETF强于科创50
+    - 核心票成交放大且不冲高回落
+    - 设备/材料/算力芯片至少两条分支共振
+  weak_validation:
+    - ETF缩量反抽
+    - 只有单一权重票拉升
+    - 板块强但核心票分化大
+  invalid:
+    - 核心票弱于半导体ETF
+    - ETF弱于科创50/创业板
+    - 放量下跌或高开低走
+
+机器人:
+  etfs: []
+  market_proxy: null
+  proxy_note: "机器人ETF/指数代理待核验，禁止误用159770.SZ"
+  benchmark: 399006.SZ
+  validation_thresholds:
+    open_window_minutes: 30
+    relative_strength_pct: 0.5
+    turnover_vs_5d: 1.2
+    min_core_symbols_confirming: 2
+  indexes:
+    - 机器人指数
+  core_symbols:
+    - 三花智控
+    - 拓普集团
+    - 鸣志电器
+  core_symbol_codes:
+    三花智控: 002050.SZ
+    拓普集团: 601689.SS
+    鸣志电器: 603728.SS
+  related:
+    - 特斯拉
+    - 减速器
+    - 传感器
+  strong_validation:
+    - 机器人指数强于创业板
+    - 核心票放量修复
+    - 减速器/传感器/执行器分支共振
+  weak_validation:
+    - 缩量反弹
+    - 特斯拉链条强但A股不跟
+    - 核心票冲高回落
+  invalid:
+    - 核心票继续破位
+    - 板块弱于大盘
+    - 科技线整体退潮
+
+创新药:
+  market_proxy: 159992.SZ
+  benchmark: 399006.SZ
+  validation_thresholds:
+    open_window_minutes: 30
+    relative_strength_pct: 0.5
+    turnover_vs_5d: 1.2
+    min_core_symbols_confirming: 2
+  etfs:
+    - 159992.SZ
+  indexes:
+    - 创新药指数
+  core_symbols:
+    - 恒瑞医药
+    - 百济神州
+    - 药明康德
+  core_symbol_codes:
+    恒瑞医药: 600276.SS
+    百济神州: 688235.SS
+    药明康德: 603259.SS
+  related:
+    - CXO
+    - 医保
+    - BD出海
+  strong_validation:
+    - 创新药ETF放量强于创业板
+    - 龙头与CXO同步修复
+    - BD/临床/政策事件继续催化
+  weak_validation:
+    - ETF缩量反弹
+    - 只靠单一权重票拉升
+    - 港股医药强但A股不跟
+  invalid:
+    - ETF跌破短期支撑
+    - 龙头弱于板块
+    - 政策或海外风险冲击
+
+大金融:
+  market_proxy: 512880.SS
+  benchmark: 000001.SS
+  validation_thresholds:
+    open_window_minutes: 30
+    relative_strength_pct: 0.5
+    turnover_vs_5d: 1.2
+    min_core_symbols_confirming: 2
+  etfs:
+    - 512880.SS
+    - 512800.SS
+  indexes:
+    - 证券指数
+    - 银行指数
+  core_symbols:
+    - 东方财富
+    - 中信证券
+    - 招商银行
+  core_symbol_codes:
+    东方财富: 300059.SZ
+    中信证券: 600030.SS
+    招商银行: 600036.SS
+  related:
+    - 银行
+    - 保险
+    - 地产
+  strong_validation:
+    - 券商ETF放量强于上证指数
+    - 银行/保险同步承接
+    - 指数上攻时金融不拖累
+  weak_validation:
+    - 券商单日脉冲但银行不跟
+    - 指数上涨但金融成交不足
+    - 冲高回落
+  invalid:
+    - 券商ETF弱于上证指数
+    - 银行保险同步走弱
+    - 大盘放量下跌
+
+黄金有色:
+  market_proxy: 518880.SS
+  benchmark: 000001.SS
+  validation_thresholds:
+    open_window_minutes: 30
+    relative_strength_pct: 0.5
+    turnover_vs_5d: 1.2
+    min_core_symbols_confirming: 2
+  etfs:
+    - 518880.SS
+    - 512400.SS
+  indexes:
+    - 黄金指数
+    - 有色金属指数
+  core_symbols:
+    - 紫金矿业
+    - 山东黄金
+    - 洛阳钼业
+  core_symbol_codes:
+    紫金矿业: 601899.SS
+    山东黄金: 600547.SS
+    洛阳钼业: 603993.SS
+  related:
+    - 铜
+    - 铝
+    - 贵金属
+  strong_validation:
+    - 黄金/有色ETF强于上证指数
+    - 紫金矿业放量且强于板块
+    - 商品价格继续走强
+  weak_validation:
+    - 商品强但A股资源股不跟
+    - 只有黄金强、有色分化
+    - 核心票缩量反弹
+  invalid:
+    - 商品价格转弱
+    - 核心票弱于板块
+    - 板块放量下跌
