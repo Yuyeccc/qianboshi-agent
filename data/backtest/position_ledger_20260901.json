@@ -1,0 +1,107 @@
+{
+  "codes": {
+    "000217": {
+      "lots": [
+        {
+          "lot_id": "000217-1",
+          "code": "000217",
+          "date": "2026-08-04",
+          "shares": 168.01,
+          "cost": 500.0,
+          "nav": 2.9761,
+          "account": "main",
+          "remaining_shares": 0.0
+        },
+        {
+          "lot_id": "000217-2",
+          "code": "000217",
+          "date": "2026-08-05",
+          "shares": 32.85,
+          "cost": 100.0,
+          "nav": 3.0437,
+          "account": "main",
+          "remaining_shares": 0.0
+        },
+        {
+          "lot_id": "000217-3",
+          "code": "000217",
+          "date": "2026-08-06",
+          "shares": 32.1,
+          "cost": 100.0,
+          "nav": 3.1156,
+          "account": "main",
+          "remaining_shares": 0.0
+        },
+        {
+          "lot_id": "000217-4",
+          "code": "000217",
+          "date": "2026-08-07",
+          "shares": 31.94,
+          "cost": 100.0,
+          "nav": 3.1312,
+          "account": "main",
+          "remaining_shares": 0.0
+        }
+      ],
+      "open_lots": [],
+      "realized_pnl": 91.62,
+      "remaining_shares": 0,
+      "remaining_cost": 0,
+      "avg_cost": 0.0,
+      "sell_count": 2
+    },
+    "159992": {
+      "lots": [
+        {
+          "lot_id": "159992-1",
+          "code": "159992",
+          "date": "2026-08-05",
+          "shares": 1100.0,
+          "cost": 989.01,
+          "nav": 0.8991,
+          "account": "main",
+          "remaining_shares": 0.0
+        }
+      ],
+      "open_lots": [],
+      "realized_pnl": 37.29,
+      "remaining_shares": 0,
+      "remaining_cost": 0,
+      "avg_cost": 0.0,
+      "sell_count": 1
+    },
+    "027695": {
+      "lots": [
+        {
+          "lot_id": "027695-1",
+          "code": "027695",
+          "date": "2026-08-24",
+          "shares": 564.78,
+          "cost": 500.0,
+          "nav": 0.8853,
+          "account": "main",
+          "remaining_shares": 564.78
+        }
+      ],
+      "open_lots": [
+        {
+          "lot_id": "027695-1",
+          "code": "027695",
+          "date": "2026-08-24",
+          "shares": 564.78,
+          "cost": 500.0,
+          "nav": 0.8853,
+          "account": "main",
+          "remaining_shares": 564.78
+        }
+      ],
+      "realized_pnl": 0.0,
+      "remaining_shares": 564.78,
+      "remaining_cost": 500.0,
+      "avg_cost": 0.8853,
+      "sell_count": 0
+    }
+  },
+  "realized_total": 128.91,
+  "n_codes": 3
+}
