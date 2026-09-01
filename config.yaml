@@ -70,11 +70,12 @@ notifications:
   daily_brief_cron: "0 9 * * 1-5"
 
 llm:
-  # 2026-08-27 用户指令：可用模型仅 deepseek-v4-flash 与 gpt-5.6-sol，禁用 v4-pro
-  api_base: https://api.deepseek.com/v1
-  api_key_env: DEEPSEEK_API_KEY
-  routine_model: deepseek-v4-flash
-  analysis_model: deepseek-v4-flash   # 分析类兜底也是 flash（pro 已禁用）
+  # 2026-09-01 用户指令：deepseek 升高峰价格 → 切 GLM（zai）。可用模型 glm-5.3-flash + gpt-5.6-sol
+  # 历史：2026-08-27 用户指令曾为"仅 deepseek-v4-flash 与 gpt-5.6-sol，禁用 v4-pro"（已随本次切换废止）
+  api_base: https://open.bigmodel.cn/api/paas/v4
+  api_key_env: ZAI_API_KEY
+  routine_model: glm-5.3-flash
+  analysis_model: glm-5.3-flash   # 分析类兜底同为 GLM（原 flash 语义保留）
   max_tokens: 8192
   temperature:
     routine: 0.3
