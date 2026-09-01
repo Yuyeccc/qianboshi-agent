@@ -153,6 +153,8 @@ def main():
                     help="只看最近N天内的观点（默认31=最近1个月）")
     ap.add_argument("--asc", action="store_true",
                     help="按日期从旧到新(默认最新优先)")
+    ap.add_argument("--view-ids", default="",
+                    help="逗号分隔 view_id 白名单（72号修复：精确补标注，忽略日期窗口）")
     args = ap.parse_args()
 
     qb = sqlite3.connect(QB, timeout=60); qc = qb.cursor()  # 60s 锁超时：支持多进程并发标注
@@ -162,18 +164,32 @@ def main():
 
     # 取锚定观点：anchor_start_ms 非空 + 最近 N 天内的观点（日期在 raw_json.date）
     import datetime
-    since = (datetime.date.today() - datetime.timedelta(days=args.since_days)).isoformat()
-    order = "ASC" if args.asc else "DESC"
-    rows = qc.execute(
-        """SELECT v.view_id, v.claim, v.evidence, v.raw_json, p.bv_id,
-                  p.anchor_start_ms, p.anchor_end_ms
-           FROM view_raw v JOIN view_provenance p ON p.view_id=v.view_id
-           WHERE p.anchor_start_ms IS NOT NULL
-             AND COALESCE(json_extract(v.raw_json,'$.date'),'') >= ?
-             AND NOT EXISTS (SELECT 1 FROM view_evidence_annotation a WHERE a.view_id = v.view_id)
-           ORDER BY json_extract(v.raw_json,'$.date') %s LIMIT ? OFFSET ?""" % order,
-        (since, args.limit, args.offset)).fetchall()
-    print(f"[tagger] 处理 {len(rows)} 条未标注锚定观点（date>={since}）\n")
+    if args.view_ids:
+        ids = [x.strip() for x in args.view_ids.split(",") if x.strip()]
+        ph = ",".join("?" * len(ids))
+        rows = qc.execute(
+            f"""SELECT v.view_id, v.claim, v.evidence, v.raw_json, p.bv_id,
+                       p.anchor_start_ms, p.anchor_end_ms
+                FROM view_raw v JOIN view_provenance p ON p.view_id=v.view_id
+                WHERE p.anchor_start_ms IS NOT NULL AND p.anchor_start_ms > 0
+                  AND v.view_id IN ({ph})
+                  AND NOT EXISTS (SELECT 1 FROM view_evidence_annotation a WHERE a.view_id = v.view_id)
+                ORDER BY json_extract(v.raw_json,'$.date') DESC""",
+            ids).fetchall()
+        print(f"[tagger] --view-ids 白名单 {len(ids)} 条，未标注待处理 {len(rows)} 条\n")
+    else:
+        since = (datetime.date.today() - datetime.timedelta(days=args.since_days)).isoformat()
+        order = "ASC" if args.asc else "DESC"
+        rows = qc.execute(
+            """SELECT v.view_id, v.claim, v.evidence, v.raw_json, p.bv_id,
+                      p.anchor_start_ms, p.anchor_end_ms
+               FROM view_raw v JOIN view_provenance p ON p.view_id=v.view_id
+               WHERE p.anchor_start_ms IS NOT NULL AND p.anchor_start_ms > 0
+                 AND COALESCE(json_extract(v.raw_json,'$.date'),'') >= ?
+                 AND NOT EXISTS (SELECT 1 FROM view_evidence_annotation a WHERE a.view_id = v.view_id)
+               ORDER BY json_extract(v.raw_json,'$.date') %s LIMIT ? OFFSET ?""" % order,
+            (since, args.limit, args.offset)).fetchall()
+        print(f"[tagger] 处理 {len(rows)} 条未标注锚定观点（date>={since}）\n")
 
     for i, (view_id, claim, evidence, raw_json, bv, s, e) in enumerate(rows, 1):
         try:
