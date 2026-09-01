@@ -43,6 +43,8 @@ def stream_chat(prompt, system=SYSTEM, retries=3):
     p = cfg["llm"]["premium"]
     key = open(p["api_key_file"]).read().strip()
     url = f"{p['api_base'].rstrip('/')}/chat/completions"
+    sess = requests.Session()
+    sess.trust_env = False  # 2026-09-01：禁系统代理（Clash），LibreSSL 走代理隧道必 SSLEOFError
     body = {"model": p["model"],
             "messages": [{"role": "system", "content": system},
                          {"role": "user", "content": prompt}],
@@ -50,9 +52,9 @@ def stream_chat(prompt, system=SYSTEM, retries=3):
             "stream": True}
     for attempt in range(1, retries + 1):
         try:
-            r = requests.post(url, headers={"Authorization": f"Bearer {key}",
-                                            "Content-Type": "application/json"},
-                              json=body, stream=True, timeout=200)
+            r = sess.post(url, headers={"Authorization": f"Bearer {key}",
+                                        "Content-Type": "application/json"},
+                          json=body, stream=True, timeout=200)
             if r.status_code != 200:
                 print(f"  [resp {r.status_code}]（attempt {attempt}/{retries}）", flush=True)
                 time.sleep(15 * attempt)
