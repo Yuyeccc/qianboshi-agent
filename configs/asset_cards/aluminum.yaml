@@ -68,3 +68,84 @@ factors:
       relation: positive
       description: 汇总铝及有色板块重点个股的看多、看空和中性观点
       strength: medium
+
+# --- 71号方案 #10/#8/#9 三维补齐（2026-09-01）---
+# 个股卡（紫金矿业 601899.SS 有财报）→ 全配；ETF/商品卡不配 → 渲染自动 na
+fundamentals_symbol: "601899.SS"   # 财报/8问/估值数据源（baostock）
+
+quality_factors:
+  - factor_id: LEVERAGE
+    factor_name: 杠杆（资产负债率）
+    category: debt
+    data_binding:
+      type: fundamental
+      metrics: ["liability_to_asset", "yoy_liability"]
+    note: "口径：资产负债率+负债同比；免费接口无有息负债科目，非净债务"
+  - factor_id: INTEREST_COVERAGE
+    factor_name: 利息覆盖
+    category: debt
+    data_binding:
+      type: fundamental
+      metrics: ["ebit_to_interest"]
+    note: "口径：EBIT/利息费用（baostock 衍生指标）"
+  - factor_id: CASHFLOW_QUALITY
+    factor_name: 盈利质量
+    category: quality
+    data_binding:
+      type: fundamental
+      metrics: ["cfo_to_np"]
+    note: "口径：经营现金流/净利润"
+  - factor_id: ASSET_STRUCTURE
+    factor_name: 资产结构
+    category: quality
+    data_binding:
+      type: fundamental
+      metrics: ["tangible_to_asset", "nca_to_asset"]
+    note: "口径：有形资产/非流动资产占比（矿业重资产属性）"
+  - factor_id: IMPAIRMENT_EXPOSURE
+    factor_name: 减值暴露
+    category: impairment
+    data_binding:
+      type: fundamental
+      metrics: []
+    note: "baostock 免费接口无商誉/应收/存货科目 → 待补不猜"
+
+analysis_framework:
+  - question_id: Q1
+    question: 经营现金流趋势（经营CF/营收 近2期）？
+    dimension: 现金流
+    data_binding: {type: fundamental, metrics: ["cfo_to_or"]}
+  - question_id: Q2
+    question: 利息覆盖（EBIT/利息费用）？
+    dimension: 现金流
+    data_binding: {type: fundamental, metrics: ["ebit_to_interest"]}
+  - question_id: Q3
+    question: 杠杆水平与方向（资产负债率+负债同比）？
+    dimension: 债务
+    data_binding: {type: fundamental, metrics: ["liability_to_asset", "yoy_liability"]}
+  - question_id: Q4
+    question: 短期偿债（流动比率/现金比率）？
+    dimension: 债务
+    data_binding: {type: fundamental, metrics: ["current_ratio", "cash_ratio"]}
+  - question_id: Q5
+    question: 盈利含金量（经营CF/净利）？
+    dimension: 现金流
+    data_binding: {type: fundamental, metrics: ["cfo_to_np"]}
+  - question_id: Q6
+    question: 利润率水平（净利率/毛利率）？
+    dimension: 质量
+    data_binding: {type: fundamental, metrics: ["np_margin", "gp_margin"]}
+  - question_id: Q7
+    question: 资产结构（非流动资产/有形资产占比）？
+    dimension: 质量
+    data_binding: {type: fundamental, metrics: ["nca_to_asset", "tangible_to_asset"]}
+  - question_id: Q8
+    question: 减值暴露/计提（商誉/应收/存货）？
+    dimension: 减值
+    data_binding: {type: fundamental, metrics: []}
+
+valuation:
+  enabled: true
+  symbol: "601899.SS"
+  lookback_years: 3
+  note: "确定性分位：近3年 peTTM/pbMRQ；闸门不达标 → 数据不足不猜"

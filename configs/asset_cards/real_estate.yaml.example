@@ -1,0 +1,96 @@
+# ============================================================================
+# real_estate.yaml.example — 地产资产卡质量因子模板（71号方案 #10 预留，未激活）
+# ============================================================================
+# 用途：当前 8 张资产卡无地产卡，本文件是"建地产卡即用"的质量因子模板。
+#      激活方式：复制为 configs/asset_cards/real_estate.yaml 并补 factors。
+# 红线：baostock 免费接口无存货/去化/合同负债科目 → 这些因子保持 pending，
+#      待接入财报数据源增强后才可评估，禁止臆造。
+#
+# 背景（36号蓝图共识 #6）：地产卡防"PB 陷阱"——0.5x PB 可能是假低估
+# （存货贬值/去化停滞/合同负债不可持续），低 PB 必须结合质量因子看。
+
+asset_id: REAL_ESTATE
+asset_name: 地产
+asset_type: sector
+default_horizon: medium
+version: 1
+description: 地产中期趋势分析框架（模板，未激活）
+
+fundamentals_symbol: ""        # 接入个股/指数财报数据源后填，如 "600048.SS"（保利发展）
+
+quality_factors:
+  - factor_id: INVENTORY
+    factor_name: 存货占比
+    category: impairment
+    data_binding:
+      type: fundamental
+      metrics: []              # 需 存货/总资产 科目（baostock 免费接口无，待数据源增强）
+    note: "地产存货=未售开发产品+在建，占比过高是去化压力的核心信号"
+  - factor_id: DESTOCKING
+    factor_name: 去化速度
+    category: impairment
+    data_binding:
+      type: fundamental
+      metrics: []              # 需 销售面积/存货 或 合同负债变化（待数据源增强）
+    note: "去化 = 销售速度 vs 存货规模；去化停滞 → 存货减值风险"
+  - factor_id: CONTRACT_LIABILITY
+    factor_name: 合同负债
+    category: quality
+    data_binding:
+      type: fundamental
+      metrics: []              # 需 合同负债/预收 科目（待数据源增强）
+    note: "合同负债=已售未交付金额，是未来收入的先行指标；下滑预示收入断档"
+  - factor_id: LEVERAGE
+    factor_name: 杠杆（资产负债率）
+    category: debt
+    data_binding:
+      type: fundamental
+      metrics: ["liability_to_asset", "yoy_liability"]
+    note: "口径：资产负债率+负债同比（baostock 可得）；地产高杠杆常态，重点看方向"
+  - factor_id: CASHFLOW_QUALITY
+    factor_name: 盈利质量
+    category: quality
+    data_binding:
+      type: fundamental
+      metrics: ["cfo_to_np"]
+    note: "口径：经营现金流/净利润；地产结算利润≠现金回款，含金量比账面利润更重要"
+
+analysis_framework:
+  - question_id: Q1
+    question: 存货占总资产比例与趋势？
+    dimension: 减值
+    data_binding: {type: fundamental, metrics: []}
+  - question_id: Q2
+    question: 去化速度（销售 vs 存货）？
+    dimension: 减值
+    data_binding: {type: fundamental, metrics: []}
+  - question_id: Q3
+    question: 合同负债（已售未交付）趋势？
+    dimension: 质量
+    data_binding: {type: fundamental, metrics: []}
+  - question_id: Q4
+    question: 杠杆水平与方向（资产负债率+负债同比）？
+    dimension: 债务
+    data_binding: {type: fundamental, metrics: ["liability_to_asset", "yoy_liability"]}
+  - question_id: Q5
+    question: 短期偿债（流动比率/现金比率）？
+    dimension: 债务
+    data_binding: {type: fundamental, metrics: ["current_ratio", "cash_ratio"]}
+  - question_id: Q6
+    question: 盈利含金量（经营CF/净利）？
+    dimension: 现金流
+    data_binding: {type: fundamental, metrics: ["cfo_to_np"]}
+  - question_id: Q7
+    question: 利息覆盖（EBIT/利息费用）？
+    dimension: 现金流
+    data_binding: {type: fundamental, metrics: ["ebit_to_interest"]}
+  - question_id: Q8
+    question: 减值暴露/计提（存货跌价准备等）？
+    dimension: 减值
+    data_binding: {type: fundamental, metrics: []}
+
+valuation:
+  enabled: false               # 个股代理确认后置 true
+  symbol: ""
+  lookback_years: 3
+  note: "确定性分位：近3年 peTTM/pbMRQ；闸门不达标 → 数据不足不猜"

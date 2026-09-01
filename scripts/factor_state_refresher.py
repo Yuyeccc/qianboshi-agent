@@ -11,6 +11,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent))
 from decision_db import save_asset_card_version, upsert_asset_card, upsert_factor_state
 from factor_config_loader import load_asset_card_config
+from valuation_calc import compute_valuation, fetch_fundamentals_periods
 from view_store import load_views
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -370,7 +371,19 @@ def _base_state(
     rule = factor.get("impact_rule") or {}
     factor_name = factor.get("factor_name") or factor.get("factor_id")
     strength = rule.get("strength") or "medium"
-    summary = f"{factor_name}{current_state}，对{asset_id}构成{impact_direction}影响。"
+    # 缺数传播修正（71号方案 §4.5，P0-2）：缺数 → 无方向、无置信、summary 不产生方向结论
+    is_missing = (
+        impact_direction == "unknown"
+        or current_state in ("数据缺失", "手工值缺失", "待更新")
+        or "无个股观点" in current_state
+    )
+    if is_missing:
+        summary = f"{factor_name}{current_state}，对{asset_id}影响待定（数据待补）。"
+        confidence: float | None = None
+        impact_direction = "unknown"
+    else:
+        summary = f"{factor_name}{current_state}，对{asset_id}构成{impact_direction}影响。"
+        confidence = 0.8
     return {
         "asset_id": asset_id,
         "factor_id": factor.get("factor_id"),
@@ -381,7 +394,7 @@ def _base_state(
         "change_direction": change_direction,
         "impact_direction": impact_direction,
         "impact_strength": strength,
-        "confidence": 0.6 if current_state == "数据缺失" else 0.8,
+        "confidence": confidence,
         "evidence_refs": evidence_refs,
         "summary": summary,
     }
@@ -400,8 +413,232 @@ def refresh_factor(factor: dict[str, Any], asset_id: str, as_of_date: str) -> di
     if binding_type == "manual":
         relation = (factor.get("impact_rule") or {}).get("relation") or "positive"
         manual_value = binding.get("manual_value")
-        return _base_state(factor, asset_id, as_of_date, str(manual_value or "手工值缺失"), "unknown", relation, manual_value, [])
+        # 缺数传播修正（71号方案 §4.5）：manual 缺值/占位 → 方向 unknown，不按 relation 传播
+        valid = manual_value not in (None, "", "待更新", "手工值缺失")
+        impact = relation if valid else "unknown"
+        return _base_state(factor, asset_id, as_of_date, str(manual_value or "手工值缺失"), "unknown", impact, manual_value, [])
     return _base_state(factor, asset_id, as_of_date, "数据缺失", "unknown", "neutral", {"error": f"unknown type: {binding_type}"}, [])
+
+
+# ---------------------------------------------------------------------------
+# 71号方案 #10/#8/#9：资料充分度 / 质量因子卡 / 8问框架（2026-09-01）
+# 口径：baostock 免费接口只提供衍生指标，原始科目（减值/净债务）不可得 → 待补不猜
+# ---------------------------------------------------------------------------
+
+_STATUS_LABEL = {"available": "已拿到", "pending": "待补", "insufficient": "不足", "na": "不适用"}
+
+
+def _fund_metrics(config: dict[str, Any], as_of: date) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """个股卡拉近 2 期财报；ETF/商品卡返回 ([], {})。"""
+    symbol = config.get("fundamentals_symbol")
+    if not symbol:
+        return [], {}
+    periods = fetch_fundamentals_periods(symbol, as_of, n_periods=2)
+    fund = periods[0] if periods else {"found": False}
+    return periods, fund
+
+
+def _fmt_pct(value: float | None, digits: int = 1) -> str:
+    if value is None:
+        return "—"
+    return f"{value * 100:.{digits}f}%"
+
+
+def _judge_qf(factor_id: str, m: dict[str, Any]) -> dict[str, Any]:
+    """质量因子评估（确定性阈值；行业阈值后续按卡校准）。"""
+    if factor_id == "LEVERAGE":
+        v = m.get("liability_to_asset")
+        j = "高杠杆" if (v is not None and v > 0.70) else ("低杠杆" if (v is not None and v < 0.30) else ("待补" if v is None else "正常"))
+        return {"value": round(v * 100, 1) if v is not None else None, "unit": "%", "judgement": j}
+    if factor_id == "INTEREST_COVERAGE":
+        v = m.get("ebit_to_interest")
+        j = "充裕" if (v is not None and v > 1.0) else ("偏紧" if (v is not None and v < 0.5) else ("待补" if v is None else "正常"))
+        return {"value": round(v, 2) if v is not None else None, "unit": "倍", "judgement": j}
+    if factor_id == "CASHFLOW_QUALITY":
+        v = m.get("cfo_to_np")
+        j = "含金量高" if (v is not None and v > 1.0) else ("含金量低" if (v is not None and v < 0.5) else ("待补" if v is None else "正常"))
+        return {"value": round(v, 2) if v is not None else None, "unit": "倍", "judgement": j}
+    if factor_id == "ASSET_STRUCTURE":
+        v = m.get("tangible_to_asset")
+        j = "重资产" if (v is not None and v > 0.70) else ("轻资产" if (v is not None and v < 0.40) else ("待补" if v is None else "正常"))
+        return {"value": round(v * 100, 1) if v is not None else None, "unit": "%", "judgement": j}
+    if factor_id == "IMPAIRMENT_EXPOSURE":
+        # baostock 免费接口无商誉/应收/存货科目 → 诚实待补（不猜）
+        return {"value": None, "unit": "-", "judgement": "待补（免费接口无减值科目）"}
+    return {"value": None, "unit": "-", "judgement": "待补"}
+
+
+def _build_quality_factors(config: dict[str, Any], fund: dict[str, Any]) -> list[dict[str, Any]]:
+    """质量因子卡评估结果。ETF/商品卡（无 fundamentals_symbol）→ []（渲染层显示不适用）。"""
+    if not config.get("fundamentals_symbol"):
+        return []
+    out = []
+    for qf in config.get("quality_factors") or []:
+        fid = qf.get("factor_id")
+        if fund.get("found"):
+            r = _judge_qf(fid, fund["metrics"])
+            out.append({
+                "factor_id": fid,
+                "factor_name": qf.get("factor_name") or fid,
+                "category": qf.get("category"),
+                "value": r["value"],
+                "unit": r["unit"],
+                "judgement": r["judgement"],
+                "period": fund.get("period"),
+                "source": fund.get("source"),
+                "status": "available" if r["value"] is not None else "pending",
+                "note": qf.get("note"),
+            })
+        else:
+            out.append({
+                "factor_id": fid,
+                "factor_name": qf.get("factor_name") or fid,
+                "category": qf.get("category"),
+                "value": None,
+                "unit": "-",
+                "judgement": "待补",
+                "period": None,
+                "source": "baostock",
+                "status": "pending",
+                "note": qf.get("note"),
+            })
+    return out
+
+
+def _answer_question(question_id: str, periods: list[dict[str, Any]], fund: dict[str, Any]) -> dict[str, Any]:
+    """8问答案（确定性；无数据 → answer=—, status=pending，不猜）。"""
+    def p(n: int) -> dict[str, Any]:
+        return periods[n]["metrics"] if n < len(periods) and periods[n].get("found") else {}
+
+    if not fund.get("found"):
+        return {"answer": "—", "status": "pending"}
+    m = fund["metrics"]
+    if question_id == "Q1":  # 现金流趋势（经营CF/营收 近2期）
+        cur, prev = p(0).get("cfo_to_or"), p(1).get("cfo_to_or")
+        if cur is None or prev is None:
+            return {"answer": "—", "status": "pending"}
+        trend = "改善" if cur > prev else ("恶化" if cur < prev else "持平")
+        return {"answer": f"{trend}（{_fmt_pct(cur)} vs 上期 {_fmt_pct(prev)}）", "status": "available"}
+    if question_id == "Q2":  # 利息覆盖
+        v = m.get("ebit_to_interest")
+        if v is None:
+            return {"answer": "—", "status": "pending"}
+        j = "能覆盖" if v > 1.0 else ("偏紧" if v >= 0.5 else "不能覆盖")
+        return {"answer": f"{j}（{v:.2f} 倍）", "status": "available"}
+    if question_id == "Q3":  # 杠杆水平与方向
+        v, yoy = m.get("liability_to_asset"), m.get("yoy_liability")
+        if v is None:
+            return {"answer": "—", "status": "pending"}
+        j = "高" if v > 0.70 else ("低" if v < 0.30 else "中")
+        s = f"{j}（资产负债率 {_fmt_pct(v)}"
+        if yoy is not None:
+            s += f"，负债同比 {yoy:+.1f}%"
+        s += "）"
+        return {"answer": s, "status": "available"}
+    if question_id == "Q4":  # 短期偿债（流动比率/现金比率）
+        cr, ca = m.get("current_ratio"), m.get("cash_ratio")
+        if cr is None:
+            return {"answer": "—", "status": "pending"}
+        j = "充裕" if cr >= 1.5 else ("偏紧" if cr < 1.0 else "正常")
+        s = f"{j}（流动比率 {cr:.2f}"
+        if ca is not None:
+            s += f"，现金比率 {ca:.2f}"
+        s += "）"
+        return {"answer": s, "status": "available"}
+    if question_id == "Q5":  # 盈利含金量
+        v = m.get("cfo_to_np")
+        if v is None:
+            return {"answer": "—", "status": "pending"}
+        j = "含金量高" if v > 1.0 else ("含金量低" if v < 0.5 else "正常")
+        return {"answer": f"{j}（经营CF/净利 {v:.2f}）", "status": "available"}
+    if question_id == "Q6":  # 利润率水平
+        np_, gp = m.get("np_margin"), m.get("gp_margin")
+        if np_ is None and gp is None:
+            return {"answer": "—", "status": "pending"}
+        s = f"净利率 {_fmt_pct(np_)}" if np_ is not None else "净利率 —"
+        if gp is not None:
+            s += f"，毛利率 {_fmt_pct(gp)}"
+        return {"answer": s, "status": "available"}
+    if question_id == "Q7":  # 资产结构
+        nca, tan = m.get("nca_to_asset"), m.get("tangible_to_asset")
+        if nca is None and tan is None:
+            return {"answer": "—", "status": "pending"}
+        s = f"非流动资产占比 {_fmt_pct(nca)}" if nca is not None else "非流动资产占比 —"
+        if tan is not None:
+            s += f"，有形资产占比 {_fmt_pct(tan)}"
+        return {"answer": s, "status": "available"}
+    if question_id == "Q8":  # 减值暴露/计提（无科目 → 诚实待补）
+        return {"answer": "—", "status": "pending"}
+    return {"answer": "—", "status": "pending"}
+
+
+def _build_analysis_framework(config: dict[str, Any], periods: list[dict[str, Any]], fund: dict[str, Any]) -> list[dict[str, Any]]:
+    """8问框架答案。ETF/商品卡（无 fundamentals_symbol）→ 标记 na 不渲染空表。"""
+    if not config.get("fundamentals_symbol"):
+        return []
+    out = []
+    for q in config.get("analysis_framework") or []:
+        ans = _answer_question(str(q.get("question_id")), periods, fund)
+        out.append({
+            "question_id": q.get("question_id"),
+            "question": q.get("question"),
+            "dimension": q.get("dimension"),
+            "answer": ans["answer"],
+            "status": ans["status"],
+        })
+    return out
+
+
+def build_quality_snapshot(config: dict[str, Any], as_of_date: str) -> dict[str, Any]:
+    """构建资产卡三维（71号方案）：资料充分度 / 质量因子 / 8问 / 估值。"""
+    as_of = _parse_date(as_of_date) or datetime.now().date()
+    has_fund = bool(config.get("fundamentals_symbol"))
+    periods: list[dict[str, Any]] = []
+    fund: dict[str, Any] = {}
+    if has_fund:
+        periods, fund = _fund_metrics(config, as_of)
+
+    # 资料充分度（值域 available/pending/insufficient/na）
+    price_trends = _load_json(DATA_DIR / "price_trends.json")
+    market_status = "available" if isinstance(price_trends, dict) and price_trends else "pending"
+    views_status = "available" if load_views() else "pending"
+    if has_fund:
+        if fund.get("found"):
+            pub = _parse_date(fund.get("pub_date"))
+            stale = pub is not None and (as_of - pub).days > 180  # 财报公告距今 >2 季度
+            fundamentals_status = "insufficient" if stale else "available"
+        else:
+            fundamentals_status = "pending"
+    else:
+        fundamentals_status = "na"
+
+    data_status = {
+        "market": market_status,
+        "views": views_status,
+        "fundamentals": fundamentals_status,
+    }
+
+    # 质量因子卡 + 8问
+    quality_factors = _build_quality_factors(config, fund)
+    analysis_framework = _build_analysis_framework(config, periods, fund)
+
+    # 估值水位（仅配置了 valuation 的卡）
+    valuation = None
+    if config.get("valuation") and has_fund:
+        val = compute_valuation(str(config.get("fundamentals_symbol")), as_of_date=as_of_date)
+        valuation = val
+        data_status["valuation"] = {"ok": "available", "insufficient": "insufficient", "pending": "pending"}.get(
+            val.get("status"), "pending"
+        )
+    else:
+        data_status["valuation"] = "na"
+
+    return {
+        "data_status": data_status,
+        "quality_factors": quality_factors,
+        "analysis_framework": analysis_framework,
+        "valuation": valuation,
+    }
 
 
 def _logic_chain_summary(asset_name: str, factors: list[dict[str, Any]]) -> str:
@@ -442,6 +679,14 @@ def refresh_asset_card(asset_id: str, as_of_date: str | None = None) -> dict[str
         "factors": factors,
     }
     card["logic_chain_summary"] = _logic_chain_summary(card["asset_name"], factors)
+    # 71号方案 #10/#8/#9：三维补齐（资料充分度 / 质量因子 / 8问 / 估值）
+    snapshot = build_quality_snapshot(config, as_of_date)
+    card.update(snapshot)
+    card["extra"] = {
+        "data_status": snapshot["data_status"],
+        "quality_factors": snapshot["quality_factors"],
+        "valuation": snapshot["valuation"],
+    }
     upsert_asset_card(card)
     save_asset_card_version(card_asset_id, version, config, change_reason="auto_refresh", changed_by="system")
     return card

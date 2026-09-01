@@ -302,6 +302,20 @@ def fetch_decisions(status: str | None = None, path: str | Path | None = None) -
     return [dict(r) for r in rows]
 
 
+def _json_dumps(value: Any) -> str | None:
+    """安全序列化 dict/list 为 JSON 字符串（None→None），71号方案#10-1。"""
+    if value is None:
+        return None
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, ddl: str) -> None:
+    """幂等给已存在的表补列（先 PRAGMA 检查再 ALTER），71号方案#10-1。"""
+    cols = [r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()]
+    if column not in cols:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+
+
 def ensure_asset_card_schema(conn: sqlite3.Connection) -> None:
     """确保资产分析卡阶段三表结构存在。"""
     conn.execute(
@@ -314,11 +328,14 @@ def ensure_asset_card_schema(conn: sqlite3.Connection) -> None:
             default_horizon TEXT,
             description TEXT,
             config_path TEXT,
+            extra_json TEXT,
             created_at TEXT,
             updated_at TEXT
         )
         """
     )
+    # 幂等迁移（2026-09-01 71号方案#10-1）：旧库补 extra_json 列（存 data_status/quality/valuation 快照）
+    _ensure_column(conn, "asset_cards", "extra_json", "TEXT")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS asset_card_versions (
@@ -711,9 +728,9 @@ def upsert_asset_card(card_meta: dict[str, Any], path: str | Path | None = None)
             """
             INSERT INTO asset_cards (
                 asset_id, asset_name, asset_type, current_version, default_horizon,
-                description, config_path, created_at, updated_at
+                description, config_path, extra_json, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(asset_id) DO UPDATE SET
                 asset_name=excluded.asset_name,
                 asset_type=excluded.asset_type,
@@ -721,6 +738,7 @@ def upsert_asset_card(card_meta: dict[str, Any], path: str | Path | None = None)
                 default_horizon=excluded.default_horizon,
                 description=excluded.description,
                 config_path=excluded.config_path,
+                extra_json=excluded.extra_json,
                 updated_at=excluded.updated_at
             """,
             (
@@ -731,6 +749,7 @@ def upsert_asset_card(card_meta: dict[str, Any], path: str | Path | None = None)
                 card_meta.get("default_horizon"),
                 card_meta.get("description"),
                 card_meta.get("config_path"),
+                _json_dumps(card_meta.get("extra")),
                 created_at,
                 now,
             ),
