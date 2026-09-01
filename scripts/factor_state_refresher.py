@@ -459,8 +459,10 @@ def _judge_qf(factor_id: str, m: dict[str, Any]) -> dict[str, Any]:
         j = "含金量高" if (v is not None and v > 1.0) else ("含金量低" if (v is not None and v < 0.5) else ("待补" if v is None else "正常"))
         return {"value": round(v, 2) if v is not None else None, "unit": "倍", "judgement": j}
     if factor_id == "ASSET_STRUCTURE":
-        v = m.get("tangible_to_asset")
-        j = "重资产" if (v is not None and v > 0.70) else ("轻资产" if (v is not None and v < 0.40) else ("待补" if v is None else "正常"))
+        # 检修修正（2026-09-01）：tangibleAssetToAsset 对矿业有语义陷阱（采矿权在无形资产，
+        # 有形占比低≠轻资产）→ 改用非流动资产占比 NCAToAsset 判据，tangible 仅作辅助展示
+        v = m.get("nca_to_asset")
+        j = "重资产" if (v is not None and v > 0.75) else ("轻资产" if (v is not None and v < 0.50) else ("待补" if v is None else "正常"))
         return {"value": round(v * 100, 1) if v is not None else None, "unit": "%", "judgement": j}
     if factor_id == "IMPAIRMENT_EXPOSURE":
         # baostock 免费接口无商誉/应收/存货科目 → 诚实待补（不猜）
@@ -680,7 +682,17 @@ def refresh_asset_card(asset_id: str, as_of_date: str | None = None) -> dict[str
     }
     card["logic_chain_summary"] = _logic_chain_summary(card["asset_name"], factors)
     # 71号方案 #10/#8/#9：三维补齐（资料充分度 / 质量因子 / 8问 / 估值）
-    snapshot = build_quality_snapshot(config, as_of_date)
+    # 检修加固（2026-09-01）：snapshot 失败（baostock/DB 异常）→ 降级 pending，卡片主体不崩
+    try:
+        snapshot = build_quality_snapshot(config, as_of_date)
+    except Exception as e:
+        print(f"  ⚠️ 资产卡三维补齐失败(降级待补) {card_asset_id}: {e}", file=sys.stderr)
+        snapshot = {
+            "data_status": {"market": "pending", "views": "pending", "fundamentals": "pending", "valuation": "pending"},
+            "quality_factors": [],
+            "analysis_framework": [],
+            "valuation": None,
+        }
     card.update(snapshot)
     card["extra"] = {
         "data_status": snapshot["data_status"],

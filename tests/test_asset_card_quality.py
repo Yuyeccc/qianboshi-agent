@@ -83,8 +83,9 @@ class TestJudgeQF:
             ("INTEREST_COVERAGE", {"ebit_to_interest": 0.3}, "偏紧"),
             ("CASHFLOW_QUALITY", {"cfo_to_np": 1.2}, "含金量高"),
             ("CASHFLOW_QUALITY", {"cfo_to_np": 0.3}, "含金量低"),
-            ("ASSET_STRUCTURE", {"tangible_to_asset": 0.80}, "重资产"),
-            ("ASSET_STRUCTURE", {"tangible_to_asset": 0.30}, "轻资产"),
+            ("ASSET_STRUCTURE", {"nca_to_asset": 0.80}, "重资产"),
+            ("ASSET_STRUCTURE", {"nca_to_asset": 0.60}, "正常"),
+            ("ASSET_STRUCTURE", {"nca_to_asset": 0.30}, "轻资产"),
             ("IMPAIRMENT_EXPOSURE", {}, "待补（免费接口无减值科目）"),
         ],
     )

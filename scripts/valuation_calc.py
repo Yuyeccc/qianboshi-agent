@@ -46,8 +46,8 @@ LEVERAGE_HIGH = 0.70           # 资产负债率 >70% 高杠杆
 LEVERAGE_LOW = 0.30            # <30% 低杠杆
 CFO_NP_HIGH = 1.0              # 经营CF/净利 >1 含金量高
 CFO_NP_LOW = 0.5               # <0.5 低
-TANGIBLE_HIGH = 0.70           # 有形资产占比 >70% 重资产
-TANGIBLE_LOW = 0.40            # <40% 轻资产
+TANGIBLE_HIGH = 0.75           # 非流动资产占比 >75% 重资产（检修修正，与 refresher 一致）
+TANGIBLE_LOW = 0.50            # <50% 轻资产
 
 NOTE_FIXED = (
     "⚠️ 估值≠安全边际：便宜可能含价值陷阱（如 0.5x PB 假低估），"
@@ -228,9 +228,6 @@ def _valuation_level(pe_rank: float | None, pb_rank: float | None) -> str:
 # 财报（衍生指标，口径 2026-09-01 实测校准）
 # ---------------------------------------------------------------------------
 
-_QUARTERS = [(y, q) for y in (2026, 2025, 2024, 2023) for q in (4, 3, 2, 1)]
-# 从最新报告期往前（调用处按 as_of 年份动态取，这里仅兜底顺序）
-
 def _quarters_back(as_of: date) -> list[tuple[int, int]]:
     """返回 as_of 往前 MIN_QUARTERS_BACK 个报告期（含当期），最新在前。"""
     y, q = as_of.year, (as_of.month - 1) // 3 + 1
@@ -278,6 +275,17 @@ def _fnum(row: dict[str, Any], key: str) -> float | None:
         return None
 
 
+def _sane(value: float | None, lo: float, hi: float) -> float | None:
+    """数据合理性护栏（检修 2026-09-01）：范围外视为异常值 → None（待补不判读）。
+
+    例：baostock 2025Q2/Q3/Q4 紫金 liabilityToAsset 返回 0.005（应为 ~0.5），
+    范围外直接剔除，禁止用异常值产生"低杠杆"误判。
+    """
+    if value is None:
+        return None
+    return value if lo <= value <= hi else None
+
+
 def fetch_latest_fundamentals(symbol: str, as_of: date) -> dict[str, Any]:
     """取 pubDate <= as_of 的最新一期合并财报（point-in-time，71号方案 §6.1 步骤4）。
 
@@ -311,19 +319,19 @@ def fetch_fundamentals_periods(symbol: str, as_of: date, n_periods: int = 2) -> 
                 continue
             stat = row.get("statDate") or f"{year}-{quarter * 3:02d}-01"
             metrics = {
-                "liability_to_asset": _fnum(row, "liabilityToAsset"),      # 资产负债率
-                "yoy_liability": _fnum(row, "YOYLiability"),               # 负债同比%
-                "current_ratio": _fnum(row, "currentRatio"),                # 流动比率
-                "cash_ratio": _fnum(row, "cashRatio"),                      # 现金比率
-                "np_margin": _fnum(row, "npMargin"),                        # 净利率%
-                "gp_margin": _fnum(row, "gpMargin"),                        # 毛利率%
-                "net_profit": _fnum(row, "netProfit"),                      # 净利润
-                "mb_revenue": _fnum(row, "MBRevenue"),                      # 主营收入
-                "cfo_to_np": _fnum(row, "CFOToNP"),                         # 经营CF/净利
-                "cfo_to_or": _fnum(row, "CFOToOR"),                         # 经营CF/营收
-                "ebit_to_interest": _fnum(row, "ebitToInterest"),           # EBIT/利息
-                "nca_to_asset": _fnum(row, "NCAToAsset"),                   # 非流动资产占比
-                "tangible_to_asset": _fnum(row, "tangibleAssetToAsset"),    # 有形资产占比
+                "liability_to_asset": _sane(_fnum(row, "liabilityToAsset"), 0.01, 1.2),   # 资产负债率 1%-120%
+                "yoy_liability": _fnum(row, "YOYLiability"),                               # 负债同比%（可为负）
+                "current_ratio": _sane(_fnum(row, "currentRatio"), 0.01, 20.0),            # 流动比率
+                "cash_ratio": _sane(_fnum(row, "cashRatio"), 0.0, 20.0),                   # 现金比率
+                "np_margin": _sane(_fnum(row, "npMargin"), -1.0, 1.0),                     # 净利率 -100%~100%
+                "gp_margin": _sane(_fnum(row, "gpMargin"), -1.0, 1.0),                     # 毛利率
+                "net_profit": _fnum(row, "netProfit"),                                     # 净利润
+                "mb_revenue": _fnum(row, "MBRevenue"),                                     # 主营收入
+                "cfo_to_np": _sane(_fnum(row, "CFOToNP"), -20.0, 20.0),                    # 经营CF/净利
+                "cfo_to_or": _sane(_fnum(row, "CFOToOR"), -5.0, 5.0),                      # 经营CF/营收
+                "ebit_to_interest": _sane(_fnum(row, "ebitToInterest"), 0.0, 1000.0),      # EBIT/利息
+                "nca_to_asset": _sane(_fnum(row, "NCAToAsset"), 0.0, 1.0),                 # 非流动资产占比
+                "tangible_to_asset": _sane(_fnum(row, "tangibleAssetToAsset"), 0.0, 1.0),  # 有形资产占比
             }
             out.append({
                 "found": True,
@@ -390,7 +398,7 @@ def build_risk_columns(fund: dict[str, Any]) -> list[dict[str, Any]]:
     period = fund.get("period")
     src = fund.get("source")
     lev = m.get("liability_to_asset")
-    tan = m.get("tangible_to_asset")
+    tan = m.get("nca_to_asset")  # 检修修正：非流动资产占比（采矿权在无形资产，有形占比会误判矿业）
     cfo = m.get("cfo_to_np")
     return [
         {
@@ -402,7 +410,7 @@ def build_risk_columns(fund: dict[str, Any]) -> list[dict[str, Any]]:
             "unit": "%",
         },
         {
-            "name": "资产结构（有形资产占比）",
+            "name": "资产结构（非流动资产占比）",
             "value": round(tan * 100, 1) if tan is not None else None,
             "judgement": _judge_tangible(tan),
             "period": period,

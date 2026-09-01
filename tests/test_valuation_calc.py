@@ -112,6 +112,32 @@ class TestGate:
 
 
 # ---------------------------------------------------------------------------
+# _sane 数据合理性护栏（检修 2026-09-01）
+# ---------------------------------------------------------------------------
+
+class TestSaneGuard:
+    @pytest.mark.parametrize(
+        "value,lo,hi,expected",
+        [
+            (0.50, 0.01, 1.2, 0.50),    # 正常
+            (0.005, 0.01, 1.2, None),   # baostock 2025Q2 紫金异常值 → 剔除
+            (1.5, 0.01, 1.2, None),     # 超上限
+            (None, 0.01, 1.2, None),    # 缺失
+            (0.0, 0.0, 1.0, 0.0),       # 下界含 0
+        ],
+    )
+    def test_ranges(self, value, lo, hi, expected):
+        assert vc._sane(value, lo, hi) == expected
+
+    def test_guard_prevents_false_leverage(self):
+        """2025Q2 异常资产负债率 0.005 → 剔除后 _judge_qf 判待补而非低杠杆。"""
+        # 模拟 2025Q2 期：liability_to_asset 经 _sane 后为 None
+        m = {"liability_to_asset": vc._sane(0.005, 0.01, 1.2)}
+        import factor_state_refresher as fsr
+        assert fsr._judge_qf("LEVERAGE", m)["judgement"] == "待补"
+
+
+# ---------------------------------------------------------------------------
 # compute_valuation 全链路（monkeypatch 网络）
 # ---------------------------------------------------------------------------
 
