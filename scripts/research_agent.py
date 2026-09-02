@@ -100,8 +100,11 @@ def call_llm(system: str, user: str, json_mode: bool = True, max_tokens: int = 2
     return content
 
 
-def llm_json(system: str, user: str, retries: int = 2, max_tokens: int = 4000) -> dict:
+def llm_json(system: str, user: str, retries: int = 4, max_tokens: int = 4000) -> dict:
     last_err = ""
+    # backoff 递增：json_object 模式偶发服务端空返回(content="")且呈窗口性，
+    # 2s 连打会整轮撞窗口；逐轮拉长间隔(2/10/20/30/40s)穿过波动窗口。
+    backoff = (2, 10, 20, 30, 40)
     for i in range(retries + 1):
         # 重试逐轮上调输出预算：deepseek-v4-flash 带 reasoning，大素材下
         # max_tokens 总预算会被 reasoning_content + content 耗尽，
@@ -119,7 +122,7 @@ def llm_json(system: str, user: str, retries: int = 2, max_tokens: int = 4000) -
             return obj
         except Exception as e:  # noqa: BLE001
             last_err = str(e)
-            time.sleep(2)
+            time.sleep(backoff[i] if i < len(backoff) else 30)
     raise RuntimeError(f"LLM JSON 输出失败: {last_err}")
 
 
