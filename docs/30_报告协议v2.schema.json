@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qianboshi.local/docs/30_报告协议v2.schema.json",
+  "title": "Qianboshi Research Report Protocol v2",
+  "description": "研究报告协议 v2：前端渲染字段 = 后端产出字段（research_agent / 演示报告）。事实/观点/推演三桶分离 + 预期差 + 情景论证 + 观察清单 + 证据链 + 合规。",
+  "type": "object",
+  "required": [
+    "goal", "coreIssue", "summary",
+    "facts", "opinions", "crossCheck", "expectations",
+    "scenarios", "watchlist", "evidence"
+  ],
+  "properties": {
+    "goal": { "type": "string", "description": "研究目标（用户输入原文）" },
+    "generatedAt": { "type": "string", "description": "生成时间 ISO" },
+    "coreIssue": { "type": "string", "description": "核心矛盾：一句话定义研究问题" },
+    "summary": { "type": "string", "description": "结论摘要：复盘+推演+概率，末尾可带证据局限说明" },
+    "facts": {
+      "type": "array",
+      "description": "客观事实桶：只能来自素材，带来源与日期",
+      "items": {
+        "type": "object",
+        "required": ["text", "source", "date"],
+        "properties": {
+          "text": { "type": "string" },
+          "source": { "type": "string", "description": "来源（新闻源/行情/官方）" },
+          "date": { "type": "string", "description": "YYYY-MM-DD" }
+        }
+      }
+    },
+    "opinions": {
+      "type": "array",
+      "description": "市场观点桶：必须标注来源者与时间，禁止无来源冒充",
+      "items": {
+        "type": "object",
+        "required": ["text", "analyst", "date", "side"],
+        "properties": {
+          "text": { "type": "string" },
+          "analyst": { "type": "string", "description": "分析师名/B站UP主/机构名" },
+          "date": { "type": "string" },
+          "side": { "enum": ["bull", "bear", "neutral"] }
+        }
+      }
+    },
+    "crossCheck": {
+      "type": "object",
+      "required": ["consensus", "disagreements"],
+      "properties": {
+        "consensus": { "type": "array", "items": { "type": "string" } },
+        "disagreements": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "expectations": {
+      "type": "object",
+      "description": "预期差：已定价 vs 超预期变量",
+      "required": ["pricedIn", "upsideVars", "downsideVars"],
+      "properties": {
+        "pricedIn": { "type": "array", "items": { "type": "string" } },
+        "upsideVars": { "type": "array", "items": { "type": "string" } },
+        "downsideVars": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "description": "情景推演桶：概率必须带 rationale 论证，全部为推演非预测",
+      "items": {
+        "type": "object",
+        "required": ["name", "condition", "outcome", "probability", "rationale", "invalidation"],
+        "properties": {
+          "name": { "type": "string" },
+          "condition": { "type": "string" },
+          "outcome": { "type": "string" },
+          "probability": { "type": "number", "minimum": 0, "maximum": 1 },
+          "rationale": { "type": "string", "description": "论证依据：为什么给这个概率" },
+          "invalidation": { "type": "string", "description": "失效条件" }
+        }
+      }
+    },
+    "watchlist": {
+      "type": "array",
+      "description": "观察清单：跟踪项带触发含义",
+      "items": {
+        "type": "object",
+        "required": ["text", "trigger"],
+        "properties": {
+          "text": { "type": "string" },
+          "trigger": { "type": "string", "description": "什么信号出现→说明什么" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "description": "证据链：报告关键引用可回溯",
+      "items": {
+        "type": "object",
+        "required": ["id", "source", "date", "claim"],
+        "properties": {
+          "id": { "type": "string", "description": "证据 id（来源简称+日期）" },
+          "source": { "type": "string" },
+          "date": { "type": "string" },
+          "claim": { "type": "string" }
+        }
+      }
+    },
+    "_meta": {
+      "type": "object",
+      "description": "运行元数据（非协议内容，可省略）",
+      "properties": {
+        "goal": { "type": "string" },
+        "generated_at": { "type": "string" },
+        "sources": {
+          "type": "object",
+          "properties": {
+            "local_views": { "type": "integer" },
+            "news": { "type": "integer" },
+            "bilibili": { "type": "integer" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+ "coreIssue": "在地产板块8月复盘与9月政策情景推演的研究中，素材A/B/C区全为空，核心矛盾无法界定；结论缺失而非被证伪。",
+ "summary": "因给定素材A区（分析师观点）、B区（新闻事实）、C区（B站观点线索）均为空，本次研究无法对8月地产板块进行有据复盘，也无法推演9月政策情景。为避免编造，本报告不设事实、观点、交叉验证、期望或情景概率。证据局限: A区分析师观点库、B区新闻源、C区B站UP观点源均未覆盖。",
+ "facts": [],
+ "opinions": [],
+ "crossCheck": {
+  "consensus": [],
+  "disagreements": []
+ },
+ "expectations": {
+  "pricedIn": [],
+  "upsideVars": [],
+  "downsideVars": []
+ },
+ "scenarios": [],
+ "watchlist": [],
+ "evidence": [],
+ "_meta": {
+  "goal": "复盘 8 月地产板块，推演 9 月政策情景",
+  "generated_at": "2026-09-03T02:58:31",
+  "sources": {
+   "local_views": 0,
+   "news": 0,
+   "bilibili": 0
+  }
+ }
+}
