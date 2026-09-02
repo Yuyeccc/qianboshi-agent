@@ -103,8 +103,12 @@ def call_llm(system: str, user: str, json_mode: bool = True, max_tokens: int = 2
 def llm_json(system: str, user: str, retries: int = 2, max_tokens: int = 4000) -> dict:
     last_err = ""
     for i in range(retries + 1):
+        # 重试逐轮上调输出预算：deepseek-v4-flash 带 reasoning，大素材下
+        # max_tokens 总预算会被 reasoning_content + content 耗尽，
+        # 导致 JSON 截断(Unterminated string)或 content 空返回。逐轮加 1500 对抗。
+        mt = max_tokens + i * 1500
         try:
-            raw = call_llm(system, user, max_tokens=max_tokens)
+            raw = call_llm(system, user, max_tokens=mt)
             raw = raw.strip()
             if raw.startswith("```"):
                 raw = re.sub(r"^```[a-z]*\n?", "", raw)
