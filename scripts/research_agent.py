@@ -41,6 +41,7 @@ PROJ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJ / "scripts"))
 
 from view_store import query_views_by_entity  # noqa: E402
+import jsonschema  # noqa: E402
 
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
 COOKIES_FILE = PROJ / "data" / "bilibili_cookies.txt"
@@ -247,6 +248,25 @@ def fetch_local_views(entity: str, limit: int = 8) -> list[dict]:
 
 # ─── 6. 素材组装 → LLM 报告 ──────────────────────────────────
 
+SCHEMA_PATH = PROJ / "docs" / "30_报告协议v2.schema.json"
+
+
+def validate_report(report: dict) -> tuple[bool, list[str]]:
+    """报告协议 v2 schema 校验：产出即校验，失败信息进 _meta 供审计与前端提示。"""
+    if not SCHEMA_PATH.exists():
+        return False, [f"schema 文件缺失: {SCHEMA_PATH}"]
+    try:
+        with SCHEMA_PATH.open(encoding="utf-8") as f:
+            schema = json.load(f)
+        validator = jsonschema.Draft202012Validator(schema)
+        errors = [e.message for e in validator.iter_errors(report)]
+        return (len(errors) == 0), errors[:8]
+    except Exception as e:  # noqa: BLE001
+        return False, [f"校验器异常: {e}"]
+
+
+
+
 def build_report(goal: str, kw: dict, local_views: list, news: list, bili: list) -> dict:
     def fmt(items, keys=("text",)):
         if not items:
@@ -300,12 +320,15 @@ JSON 输出结构（严格按此键名）:
             "bilibili": len(bili),
         },
     }
+    # 协议必填的确定性字段由代码补齐，不依赖 LLM 输出
+    obj.setdefault("goal", goal)
+    obj.setdefault("generatedAt", datetime.now().isoformat(timespec="seconds"))
     return obj
 
 
 # ─── 主流程 ─────────────────────────────────────────────────
 
-def run_research(goal: str, save: bool = True) -> dict:
+def run_research(goal: str, save: bool = True, job_id: str | None = None) -> dict:
     t0 = time.time()
     print(f"[1/6] 提取检索要素: {goal}")
     kw = extract_keywords(goal)
@@ -338,6 +361,14 @@ def run_research(goal: str, save: bool = True) -> dict:
     print("[5/6] LLM 组装研究报告…")
     report = build_report(goal, kw, local_views, news, bili)
 
+    ok, errs = validate_report(report)
+    report.setdefault("_meta", {})["schema_valid"] = ok
+    if errs:
+        report["_meta"]["schema_errors"] = errs
+    if job_id:
+        report["_meta"]["job_id"] = job_id
+    print(f"[5b/6] 协议 v2 schema 校验: {'通过' if ok else '失败: ' + '; '.join(errs)}")
+
     print(f"[6/6] 完成，耗时 {time.time() - t0:.0f}s")
     if save:
         out_dir = PROJ / "data" / "research"
@@ -353,6 +384,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("goal", help="研究目标，如: 复盘 8 月地产板块，推演 9 月政策情景")
     ap.add_argument("--no-save", action="store_true")
+    ap.add_argument("--job-id", default=None, help="任务ID(由调用方分配,写入报告 _meta.job_id)")
     args = ap.parse_args()
-    rep = run_research(args.goal, save=not args.no_save)
+    rep = run_research(args.goal, save=not args.no_save, job_id=args.job_id)
     print(json.dumps(rep, ensure_ascii=False, indent=1)[:3000])
