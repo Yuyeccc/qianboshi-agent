@@ -34,14 +34,16 @@ CODE_CHANNELS = ("etfs", "stocks", "indexes", "us_mapping")
 CN_CHANNELS = ("sectors", "themes")
 
 
-def build_maps(aliases: dict) -> tuple[dict[str, str], dict[str, str], list[str]]:
-    """构建 [词→canonical] 全等表、[代码→canonical] 反查表、canonical 名列表(长→短)。
+def build_maps(aliases: dict) -> tuple[dict[str, str], dict[str, str], list[str], set[str]]:
+    """构建 [词→canonical] 全等表、[代码→canonical] 反查表、canonical 名列表(长→短)、词典覆盖的代码域键。
 
-    aliases = load_aliases() 返回的 dict：{"entities": {canonical: {aliases, etfs, themes, stocks}}}
+    aliases = load_aliases() 返回的 dict：{"entities": {canonical: {aliases, etfs, themes, stocks, indexes, us_mapping}}}
+    词典 spec 具备哪个代码键就覆盖哪个域（coverage_keys），数据通道仅在覆盖域内计命中率。
     """
     entities = aliases.get("entities") or {}
     alias_map: dict[str, str] = {}
     code_map: dict[str, str] = {}
+    coverage_keys: set[str] = set()
     for canonical, spec in entities.items():
         if not isinstance(spec, dict):
             continue
@@ -53,12 +55,13 @@ def build_maps(aliases: dict) -> tuple[dict[str, str], dict[str, str], list[str]
         for w in names:
             # 已有映射不覆盖：词典内冲突时先注册者胜（yaml 顺序=人工优先级）
             alias_map.setdefault(w, canonical)
-        for k in ("etfs", "stocks"):
+        for k in CODE_CHANNELS:
             for c in spec.get(k) or []:
-                if isinstance(c, str):
+                if isinstance(c, str) and c:
                     code_map.setdefault(c, canonical)
+                    coverage_keys.add(k)
     canon_sorted = sorted(entities.keys(), key=len, reverse=True)
-    return alias_map, code_map, canon_sorted
+    return alias_map, code_map, canon_sorted, coverage_keys
 
 
 def classify_word(word: str, alias_map: dict, canon_sorted: list[str]) -> tuple[str, str]:
@@ -72,12 +75,12 @@ def classify_word(word: str, alias_map: dict, canon_sorted: list[str]) -> tuple[
 
 
 def scan(jsonl_path: Path, alias_map: dict, code_map: dict, canon_sorted: list[str],
-         min_freq: int, by_entity: bool):
+         coverage_keys: set[str], min_freq: int, by_entity: bool):
     stats = {
         "views_total": 0, "views_with_entities": 0, "views_cover_cn": 0,
         "cn_total": 0, "cn_mode1": 0, "cn_mode2": 0, "cn_uncovered": 0,
         "code_total": 0, "code_hit": 0, "domain_total": {"etfs": 0, "stocks": 0, "indexes": 0, "us_mapping": 0},
-        "code_hit_domain": {"etfs": 0, "stocks": 0},
+        "code_hit_domain": {ch: 0 for ch in CODE_CHANNELS},
         "canonical_hits": collections.Counter(),
     }
     uncov_words: collections.Counter = collections.Counter()
@@ -118,7 +121,7 @@ def scan(jsonl_path: Path, alias_map: dict, code_map: dict, canon_sorted: list[s
                     if not isinstance(c, str) or not c:
                         continue
                     stats["domain_total"][ch] += 1
-                    if ch in ("etfs", "stocks"):
+                    if ch in coverage_keys:
                         stats["code_total"] += 1
                         canon = code_map.get(c)
                         if canon:
@@ -134,13 +137,14 @@ def scan(jsonl_path: Path, alias_map: dict, code_map: dict, canon_sorted: list[s
 
 
 def render_report(stats: dict, uncov_words: collections.Counter, canon_sorted: list[str],
-                  top: int, min_freq: int, by_entity: bool, aliases: dict) -> str:
+                  coverage_keys: set[str], top: int, min_freq: int, by_entity: bool, aliases: dict) -> str:
     cn = stats["cn_total"]
     cn_hit = stats["cn_mode1"] + stats["cn_mode2"]
     cn_rate = cn_hit / cn if cn else 0.0
     code_rate = stats["code_hit"] / stats["code_total"] if stats["code_total"] else 0.0
     vc = stats["views_with_entities"]
     v_rate = stats["views_cover_cn"] / vc if vc else 0.0
+    covered = "+".join(sorted(coverage_keys))
     lines = []
     A = lines.append
     A("=" * 64)
@@ -155,15 +159,18 @@ def render_report(stats: dict, uncov_words: collections.Counter, canon_sorted: l
     A(f"  未覆盖         {stats['cn_uncovered']}  ({stats['cn_uncovered'] / cn * 100:.1f}%)" if cn else "  未覆盖 0")
     A(f"  ★ 主口径覆盖率 = {cn_rate * 100:.2f}%  （D1 阈值 ≥85% → 开刀1 检测器）")
     A("")
-    A(f"[辅助口径·代码反查] etfs+stocks 共 {stats['code_total']} 条（词典有键域），命中 "
+    A(f"[辅助口径·代码反查] 覆盖域({covered}) 共 {stats['code_total']} 条，命中 "
       f"{stats['code_hit']}  ({code_rate * 100:.1f}%)")
-    A(f"  domain: etfs={stats['domain_total']['etfs']} (hit {stats['code_hit_domain']['etfs']})  "
-      f"stocks={stats['domain_total']['stocks']} (hit {stats['code_hit_domain']['stocks']})")
-    A(f"[词典未覆盖域] indexes={stats['domain_total']['indexes']}  us_mapping={stats['domain_total']['us_mapping']} "
-      "（词典无此二键，扩展候选；indexes 指数代码可挂 大盘，us_mapping 美股代码待定域）")
+    dom_lines = []
+    for ch in CODE_CHANNELS:
+        dom = stats["domain_total"][ch]
+        hit = stats["code_hit_domain"].get(ch, 0)
+        tag = "" if ch in coverage_keys else "（词典未覆盖域）"
+        dom_lines.append(f"{ch}={dom}(hit {hit}){tag}")
+    A("  domain: " + "  ".join(dom_lines))
     A(f"[view 级] 含≥1 可归一中文实体的 view = {stats['views_cover_cn']}/{vc} ({v_rate * 100:.1f}%)")
-    A("[注] 中文 sectors/themes 为词典驱动闭集（抽取时经 entity_normalizer 归一，distinct 词有限），"
-      "中文 100% 属预期；真实开放域=代码通道未命中 + claim/logic 自由文本")
+    A("[注] 中文 sectors/themes 为词典驱动闭集（抽取时经 entity_normalizer 归一），中文 100% 属预期；"
+      "真实开放域=覆盖域内未命中代码 + claim/logic 自由文本")
     A("")
     A(f"[per-canonical 命中]（前 14，共 {len(stats['canonical_hits'])} canonical 有命中）")
     for canon, n in stats["canonical_hits"].most_common(14):
@@ -212,8 +219,9 @@ def main() -> int:
         print(f"[ERR] 数据源不存在: {jsonl}", file=sys.stderr)
         return 2
     aliases = load_aliases(path=args.aliases_path) if args.aliases_path else load_aliases()
-    alias_map, code_map, canon_sorted = build_maps(aliases)
-    stats, uncov_words = scan(jsonl, alias_map, code_map, canon_sorted, args.min_freq, args.by_entity)
+    alias_map, code_map, canon_sorted, coverage_keys = build_maps(aliases)
+    stats, uncov_words = scan(jsonl, alias_map, code_map, canon_sorted, coverage_keys,
+                              args.min_freq, args.by_entity)
 
     if args.json:
         cn = stats["cn_total"]
@@ -228,11 +236,14 @@ def main() -> int:
             "code_total": stats["code_total"],
             "code_hit": stats["code_hit"],
             "domains": stats["domain_total"],
+            "coverage_keys": sorted(coverage_keys),
+            "domain_hits": dict(stats["code_hit_domain"]),
         }
         print(json.dumps(out, ensure_ascii=False, indent=1))
         return 0
 
-    print(render_report(stats, uncov_words, canon_sorted, args.top, args.min_freq, args.by_entity, aliases))
+    print(render_report(stats, uncov_words, canon_sorted, coverage_keys,
+                        args.top, args.min_freq, args.by_entity, aliases))
     return 0
 
 
