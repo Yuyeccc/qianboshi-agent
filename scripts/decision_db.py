@@ -161,12 +161,15 @@ def ensure_decision_log_schema(conn: sqlite3.Connection) -> None:
             asset_card_version INTEGER,
             debate_card_id TEXT,
             market_snapshot TEXT,
+            user_view_version_ids TEXT,
             status TEXT DEFAULT 'open',
             created_at TEXT,
             updated_at TEXT
         )
         """
     )
+    # 迁移：老库补 user_view_version_ids 列（记忆体系 P1a，决策冻结信念版本，2026-09-03）
+    _ensure_column(conn, "user_decision_logs", "user_view_version_ids", "TEXT")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS user_decision_evidence (
@@ -227,10 +230,10 @@ def upsert_decision_log(decision: dict[str, Any], path: str | Path | None = None
                 decision_id, user_id, asset_id, asset_name, asset_type,
                 decision_date, horizon, direction, conviction,
                 thesis, key_reasons, premise, invalidation_conditions, action_note,
-                asset_card_version, debate_card_id, market_snapshot,
+                asset_card_version, debate_card_id, market_snapshot, user_view_version_ids,
                 status, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(decision_id) DO UPDATE SET
                 thesis=excluded.thesis,
                 key_reasons=excluded.key_reasons,
@@ -241,6 +244,7 @@ def upsert_decision_log(decision: dict[str, Any], path: str | Path | None = None
                 direction=excluded.direction,
                 conviction=excluded.conviction,
                 status=excluded.status,
+                user_view_version_ids=excluded.user_view_version_ids,
                 updated_at=excluded.updated_at
             """,
             (
@@ -261,6 +265,8 @@ def upsert_decision_log(decision: dict[str, Any], path: str | Path | None = None
                 decision.get("asset_card_version"),
                 decision.get("debate_card_id"),
                 json.dumps(decision.get("market_snapshot", {}), ensure_ascii=False),
+                json.dumps(decision.get("user_view_version_ids"), ensure_ascii=False)
+                if decision.get("user_view_version_ids") is not None else None,
                 decision.get("status", "open"),
                 now,
                 now,

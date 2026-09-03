@@ -16,6 +16,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 from decision_db import fetch_decisions, upsert_decision_log
+import user_view_versions  # noqa: E402  (P1a 决策冻结信念版本快照)
 
 ASSET_ALIASES = {
     "gold": ("GOLD", "黄金", "commodity"),
@@ -95,8 +96,13 @@ def main() -> None:
         return
 
     decision = build_decision(args)
+    # 记忆体系 P1a：录入时冻结当前信念版本（当时信什么，未来复盘可追溯）。降级=None 不阻断。
+    snap = user_view_versions.snapshot_ids()
+    if snap:
+        decision["user_view_version_ids"] = snap["ids"]
     did = upsert_decision_log(decision)
-    print(f"✅ 已录入: {did}")
+    print(f"✅ 已录入: {did}"
+          + (f"（冻结信念 {len(snap['ids'])} 条 @ {snap['as_of']}）" if snap else "（信念冻结不可用=降级）"))
     print(render_decision(decision))
 
 

@@ -196,5 +196,55 @@ def list_user_decisions(status: str = "") -> str:
         return _gated(f"列出决策失败: {e}", tool="list_user_decisions")
 
 
+# ─── 记忆体系时间轴工具（P1b） ───────────────────────
+
+
+def _timeline_conn():
+    """事件时间轴库只读连接（lifecycle 库，P1b schema 内建）。"""
+    sys.path.insert(0, str(PROJ / "scripts"))
+    import event_timeline as et
+    from view_lifecycle import db_path
+    conn = et.connect(db=db_path())
+    return conn, et
+
+
+@mcp.tool()
+def timeline_get(event_type: str = "", actor: str = "", since: str = "", limit: int = 20) -> str:
+    """记忆体系事件时间轴查询（观点状态变化/决策/复盘/资产卡版本/行情结果/信念变更）。
+    event_type 可选: decision_created/review_created/asset_card_versioned/outcome_observed/
+    view_created/view_status_changed/user_view_changed；actor 如 user/market/分析师名；
+    since 起始时间(ISO 或日期)；limit 条数默认20。返回事件 JSON。"""
+    try:
+        conn, et = _timeline_conn()
+        try:
+            rows = et.query_timeline(conn, event_type=event_type, actor=actor,
+                                     since=since, limit=limit)
+        finally:
+            conn.close()
+        return _gated(json.dumps({"count": len(rows), "items": rows},
+                                 ensure_ascii=False, indent=1), tool="timeline_get")
+    except Exception as e:
+        return _gated(f"时间轴查询失败: {e}", tool="timeline_get")
+
+
+@mcp.tool()
+def timeline_trace_decision(decision_id: str) -> str:
+    """决策链回放：某决策的完整事件链（创建→复盘→资产卡版本→关联观点结果，时间升序）。
+    decision_id 如 dec_2026-08-06_GOLD_001（用 list_user_decisions 查 id）。"""
+    try:
+        conn, et = _timeline_conn()
+        try:
+            chain = et.trace_decision(conn, decision_id)
+        finally:
+            conn.close()
+        if not chain:
+            return _gated(f"决策 {decision_id} 无时间轴事件（可能未 build/reconcile）",
+                          tool="timeline_trace_decision")
+        return _gated(json.dumps({"decision_id": decision_id, "chain": chain},
+                                 ensure_ascii=False, indent=1), tool="timeline_trace_decision")
+    except Exception as e:
+        return _gated(f"决策链回放失败: {e}", tool="timeline_trace_decision")
+
+
 if __name__ == "__main__":
     mcp.run()

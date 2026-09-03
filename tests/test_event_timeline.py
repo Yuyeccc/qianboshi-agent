@@ -241,6 +241,29 @@ def _env_full(tmp_path):
     return dec_db, lc_db, jl
 
 
+def test_query_timeline_filters(tmp_path):
+    conn = evt.connect(db=tmp_path / "lifecycle.db")
+    evt.insert_event(conn, "decision_created", "2026-09-01", "user", "d1", None,
+                     "s/1", {"decision_id": "dec_1"})
+    evt.insert_event(conn, "decision_created", "2026-09-03", "user", "d2", None,
+                     "s/2", {"decision_id": "dec_2"})
+    evt.insert_event(conn, "outcome_observed", "2026-09-02", "market", "o1", None,
+                     "s/3", {"view_id": "v1"})
+    # 倒序 + limit
+    rows = evt.query_timeline(conn, limit=2)
+    assert [r["title"] for r in rows] == ["d2", "o1"]
+    # 类型过滤
+    rows = evt.query_timeline(conn, event_type="outcome_observed")
+    assert len(rows) == 1 and rows[0]["payload"]["view_id"] == "v1"
+    # actor 过滤
+    rows = evt.query_timeline(conn, actor="market")
+    assert len(rows) == 1 and rows[0]["event_type"] == "outcome_observed"
+    # since 过滤
+    rows = evt.query_timeline(conn, since="2026-09-02", limit=10)
+    assert [r["title"] for r in rows] == ["d2", "o1"]
+    conn.close()
+
+
 def test_reconcile_after_build_zero_delta(tmp_path):
     dec_db, lc_db, jl = _env_full(tmp_path)
     build_all(lc_db, dec_db, jl)

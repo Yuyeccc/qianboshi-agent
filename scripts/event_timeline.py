@@ -143,6 +143,41 @@ def last_recorded_at(conn: sqlite3.Connection) -> str | None:
     return r[0] if r else None
 
 
+def query_timeline(
+    conn: sqlite3.Connection,
+    event_type: str = "",
+    actor: str = "",
+    since: str = "",
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    """时间轴查询（MCP/日报消费）：按类型/actor/起始时间过滤，occurred_at 倒序最近 limit 条。"""
+    where, params = [], []
+    if event_type:
+        where.append("event_type=?")
+        params.append(event_type)
+    if actor:
+        where.append("actor=?")
+        params.append(actor)
+    if since:
+        where.append("occurred_at>=?")
+        params.append(since)
+    sql = "SELECT * FROM event_timeline"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY occurred_at DESC, event_id LIMIT ?"
+    params.append(max(1, min(int(limit), 200)))
+    rows = conn.execute(sql, params).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["payload"] = json.loads(d.pop("payload_json"))
+        except Exception:
+            d["payload"] = None
+        out.append(d)
+    return out
+
+
 def trace_decision(conn: sqlite3.Connection, decision_id: str) -> list[dict[str, Any]]:
     """决策链回放（两跳）：直达 decision 的事件 + 经 review/asset 对象中转的事件。
 

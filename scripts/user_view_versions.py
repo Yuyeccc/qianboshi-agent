@@ -152,6 +152,24 @@ def migrate_from_myviews(
             "no_key": no_key, "dry_run": dry_run}
 
 
+def snapshot_ids(db: str | Path | None = None) -> dict[str, Any] | None:
+    """决策创建时冻结信念版本快照：current 全量 version_id 数组（决策可追溯"当时信什么"）。
+
+    - 返回 {"as_of": ISO 时间, "ids": [version_id,...]}（按 view_key 序）；
+    - lifecycle 库缺失/损坏/无表 → None（调用方降级，决策录入绝不因冻结失败而阻断）。
+    """
+    try:
+        conn = connect(db=db)
+        try:
+            rows = conn.execute(
+                "SELECT current_version_id FROM user_view_current ORDER BY view_key").fetchall()
+        finally:
+            conn.close()
+        return {"as_of": _now(), "ids": [r["current_version_id"] for r in rows]}
+    except Exception:
+        return None
+
+
 def get_current(conn: sqlite3.Connection, view_key: str) -> sqlite3.Row | None:
     return conn.execute(
         "SELECT * FROM user_view_current WHERE view_key=?", (view_key,)
