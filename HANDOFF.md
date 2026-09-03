@@ -30,6 +30,7 @@
 - monitor 规则集仅 P0-PRICE-01 + P2-CACHE-01；P1-HOT/SENT 需涨停池/情绪数据接入
 - my_views quiet_hours 未配置（P2 通知升级时填）
 - agent.py run_schedule 迁入 orchestrator 定时（ADR-001 提及，未动现役）
+- 记忆体系 P0（架构文档 v6 §5.1/ADR-004）：观点状态机骨架（view_lifecycle 两表+migrate+转移入口+日报过滤+lint 初版+flag），依据 workspace qianboshi-memory-upgrade/03_融合终版方案
 
 ## 铁律与坑（触犯必返工）
 
