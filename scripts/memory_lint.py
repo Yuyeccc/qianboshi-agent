@@ -194,12 +194,107 @@ def run(config: dict[str, Any] | None = None) -> dict[str, Any]:
     except Exception as e:
         warnings.append(f"P1b 事件时间轴检查异常: {e}")
 
+    # ── P2 检查（记忆冲突 / 规则生命周期 / 报告互链 / 词典覆盖） ──
+    conflicts_open = 0
+    rules_proposed_stale = 0
+    report_total = 0
+    report_unlinked = 0
+    report_missing = []
+    report_bad_links = 0
+    try:
+        import memory_conflicts as mcx
+        conn = mcx.connect(db_path=lc_path)
+        mcx.ensure_schema(conn)
+        conflicts_open = conn.execute(
+            "SELECT COUNT(*) FROM memory_conflicts WHERE status='open'").fetchone()[0]
+        conn.close()
+        if conflicts_open > 20:
+            warnings.append(f"P2 记忆冲突 open {conflicts_open} 条堆积（>20，待人工裁决，"
+                            f"跑 memory_conflicts.py list --status open）")
+    except Exception as e:
+        warnings.append(f"P2 conflicts 检查异常: {e}")
+
+    try:
+        import rule_lifecycle as rlx
+        conn = rlx.connect(db_path=lc_path)
+        rlx.ensure_schema(conn)
+        stale = conn.execute(
+            "SELECT COUNT(*) FROM rule_lifecycle WHERE state='proposed' "
+            "AND proposed_at < datetime('now','-7 days')").fetchone()[0]
+        rules_total = conn.execute("SELECT COUNT(*) FROM rule_lifecycle").fetchone()[0]
+        conn.close()
+        if stale:
+            warnings.append(f"P2 规则 proposed {stale} 条超 7 天未审（跑 rule_lifecycle.py list --state proposed）")
+    except Exception as e:
+        rules_total = 0
+        warnings.append(f"P2 rules 检查异常: {e}")
+
+    try:
+        import report_docs as rdoc
+        conn = rdoc.connect(db_path=lc_path)
+        rdoc.ensure_schema(conn)
+        rows = conn.execute("SELECT doc_id, linked_view_ids FROM report_docs").fetchall()
+        report_total = len(rows)
+        # 报告互链断链：linked_view_ids 指向不在 lifecycle 的 view
+        known = set(sm.keys())
+        for r in rows:
+            try:
+                vids = json.loads(r["linked_view_ids"] or "[]")
+            except Exception:
+                vids = []
+            if not vids:
+                report_unlinked += 1
+            bad = [v for v in vids if v not in known]
+            if bad:
+                report_bad_links += 1
+        conn.close()
+        # 未登记报告：data/research/*.json 无 report_docs 行（新报告未 scan）；
+        # schema_valid=False 无效产物（report_docs scan 本就跳过）不算未登记
+        rd_dir = Path(__file__).resolve().parent.parent / "data" / "research"
+        if rd_dir.exists():
+            doc_ids = {r["doc_id"] for r in rows}
+            for jf in sorted(rd_dir.glob("*.json")):
+                if jf.stem in doc_ids:
+                    continue
+                try:
+                    jd = json.loads(jf.read_text(encoding="utf-8"))
+                except Exception:
+                    report_missing.append(jf.stem)
+                    continue
+                if (jd.get("_meta") or {}).get("schema_valid") is False:
+                    continue  # 无效产物，scan 合法跳过
+                report_missing.append(jf.stem)
+        if report_missing:
+            warnings.append(f"P2 报告未登记 {len(report_missing)} 份（跑 report_docs.py scan，"
+                            f"样例 {report_missing[:3]}）")
+        if report_bad_links:
+            warnings.append(f"P2 报告互链断链 {report_bad_links} 条（linked_view_ids 指向非 lifecycle view）")
+    except Exception as e:
+        warnings.append(f"P2 report_docs 检查异常: {e}")
+
+    coverage = None
+    try:
+        import entity_coverage_audit as eca
+        from entity_normalizer import load_aliases as _la
+        am, cm, cs, ck = eca.build_maps(_la())
+        jl = Path(vp)
+        st, _ = eca.scan(jl, am, cm, cs, ck, min_freq=1, by_entity=False)
+        cn = st["cn_total"]
+        coverage = round((st["cn_mode1"] + st["cn_mode2"]) / cn * 100, 2) if cn else 0.0
+        if coverage < 85.0:
+            warnings.append(f"P2 词典主口径覆盖率 {coverage}% < 85%（跑 entity_coverage_audit.py 补词典）")
+    except Exception as e:
+        warnings.append(f"P2 词典覆盖检查异常: {e}")
+
     ok = not fails and not warnings
     return {"ok": ok, "fails": fails, "warnings": warnings,
             "summary": {"jsonl_total": total_unique, "lifecycle_total": db_total,
                         "recent_overdue": recent_overdue, "stale_overdue": stale_overdue,
                         "dup_view_ids": dup_groups, "lowq": lowq,
-                        "uvv_versions": uvv_total, "event_total": evt_total}}
+                        "uvv_versions": uvv_total, "event_total": evt_total,
+                        "conflicts_open": conflicts_open, "rules_total": rules_total,
+                        "report_docs": report_total, "report_unlinked": report_unlinked,
+                        "coverage_pct": coverage}}
 
 
 def main() -> None:

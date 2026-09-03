@@ -30,7 +30,8 @@
 - monitor 规则集仅 P0-PRICE-01 + P2-CACHE-01；P1-HOT/SENT 需涨停池/情绪数据接入
 - my_views quiet_hours 未配置（P2 通知升级时填）
 - agent.py run_schedule 迁入 orchestrator 定时（ADR-001 提及，未动现役）
-- 记忆体系 P0/P0.5/P1 全 ✅（P0=8f0a97c 状态机骨架 / P0.5=e1138ad 自动评估 249 falsified / P1=44c470e+76ad14b 信念版本链+决策冻结 / 2e24cb2+e9baa16 事件时间轴 12835 事件+MCP timeline）；P0.5b ✅（252f6fc horizon↔窗口匹配：316 confirmed+87 falsified 落库，87 为 P0.5 漏判修正）；P2 冲突治理/规则闭环/报告互链；flag 仍默认关待观察
+- 记忆体系 P0/P0.5/P1 全 ✅（P0=8f0a97c 状态机骨架 / P0.5=e1138ad 自动评估 249 falsified / P1=44c470e+76ad14b 信念版本链+决策冻结 / 2e24cb2+e9baa16 事件时间轴 12835 事件+MCP timeline）；P0.5b ✅（252f6fc horizon↔窗口匹配：316 confirmed+87 falsified 落库，87 为 P0.5 漏判修正）；**P2 ✅ 2026-09-03**（刀0 词典覆盖审计→刀1 memory_conflicts 250 open→刀2 rule_lifecycle 3 active→刀3 report_docs 11 登记+481 互链→刀4 报告进 chroma+状态过滤→刀5 lint P2 段+文档，单测 377 全绿）；flag 仍默认关待观察
+- 记忆体系 P2 收尾遗留：① memory_conflicts 250 open 待人工裁决（direction 60/temporal 187/user_belief 3，裁决命令 memory_conflicts.py resolve）② decision_reviews.new_rule_learned 全空→复盘器未填充（规则闭环数据上游，复盘器改造后 extract 自动生效）③ 词典扩展候选：stocks 40（宽基 ETF 510300 等）+新能源链无 canonical（300750/601127）+us_mapping 28（META/AAPL）④ 报告 entity 未标 4 份（地产等无 canonical 或文本短）待人工补 ⑤ lint 现 WARN=conflicts backlog 提示属预期
 
 ## 铁律与坑（触犯必返工）
 
