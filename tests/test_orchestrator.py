@@ -123,6 +123,45 @@ class OrchestratorTests(unittest.TestCase):
         final = json.loads((self.jobs / f"{job['job_id']}.json").read_text(encoding="utf-8"))
         self.assertEqual(final["status"], ST_QUEUED)
 
+    # ── P2-A: job 契约 agent_type + executor 分派 ──
+    def test_old_job_defaults_analyst(self):
+        """现役调用方式（不带 agent_type）→ job 落盘 agent_type=analyst（向后兼容）。"""
+        job = submit_job("黄金 9 月情景推演", self.jobs, max_attempts=2)
+        data = json.loads((self.jobs / f"{job['job_id']}.json").read_text(encoding="utf-8"))
+        self.assertEqual(data["agent_type"], "analyst")
+
+    def test_submit_carries_agent_type(self):
+        job = submit_job("持仓风险评估", self.jobs, max_attempts=2, agent_type="portfolio_risk")
+        data = json.loads((self.jobs / f"{job['job_id']}.json").read_text(encoding="utf-8"))
+        self.assertEqual(data["agent_type"], "portfolio_risk")
+
+    def test_resolve_agent_script_dispatch(self):
+        """分派纯函数：缺省/analyst → research_agent.py；risk/review → 各自脚本。"""
+        from orchestrator import AGENT_SCRIPTS, resolve_agent_script
+        self.assertEqual(resolve_agent_script({}), AGENT_SCRIPTS["analyst"])
+        self.assertEqual(resolve_agent_script({"agent_type": "analyst"}), AGENT_SCRIPTS["analyst"])
+        self.assertEqual(resolve_agent_script({"agent_type": "portfolio_risk"}), AGENT_SCRIPTS["portfolio_risk"])
+        self.assertEqual(resolve_agent_script({"agent_type": "decision_review"}), AGENT_SCRIPTS["decision_review"])
+        self.assertIsNone(resolve_agent_script({"agent_type": "bogus"}))
+
+    def test_run_executor_fail_closed_missing_script(self):
+        """分派脚本路径不存在时执行 → failed（不静默当 analyst 跑、不调 LLM）。"""
+        from unittest import mock
+        from orchestrator import run_research_executor
+        job = submit_job("持仓风险评估", self.jobs, max_attempts=1, agent_type="portfolio_risk")
+        with mock.patch.dict("orchestrator.AGENT_SCRIPTS",
+                             {"portfolio_risk": Path("Z:/nonexistent/portfolio_risk_agent.py")}):
+            result = run_research_executor(job, self.jobs, timeout=5)
+        self.assertEqual(result["status"], ST_FAILED)
+        self.assertIn("执行脚本缺失", result["error"] or "")
+
+    def test_run_executor_unknown_type_fail_closed(self):
+        from orchestrator import run_research_executor
+        job = {"job_id": "x" * 32, "goal": "测试", "agent_type": "bogus"}
+        result = run_research_executor(job, self.jobs, timeout=5)
+        self.assertEqual(result["status"], ST_FAILED)
+        self.assertIn("未知 agent_type", result["error"] or "")
+
 
 if __name__ == "__main__":
     unittest.main()

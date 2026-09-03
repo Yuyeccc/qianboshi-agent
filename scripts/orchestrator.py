@@ -67,6 +67,17 @@ RESEARCH_AGENT = PROJ / "scripts" / "research_agent.py"
 SUB_TIMEOUT = 600  # 单次研究任务子进程超时（秒）
 BACKOFF_BASE = 2   # 重试退避基数秒：2^attempts
 
+# ── agent 执行器注册表（P2 四 Agent 分派）────────────────────
+# job.agent_type → 执行脚本（统一契约：goal + --job-id + 产物带 _meta.job_id）
+# analyst = 现有 research_agent 继承不重写；portfolio_risk/decision_review
+# 由对应 *_agent.py 落盘即被拾取（B/C 交付物），无需再改本文件
+DEFAULT_AGENT_TYPE = "analyst"
+AGENT_SCRIPTS: dict[str, Path] = {
+    "analyst": RESEARCH_AGENT,
+    "portfolio_risk": PROJ / "scripts" / "portfolio_risk_agent.py",
+    "decision_review": PROJ / "scripts" / "decision_review_agent.py",
+}
+
 # job 状态机合法值（与 research_service 对齐）
 ST_QUEUED, ST_RUNNING, ST_DONE, ST_FAILED = "queued", "running", "done", "failed"
 
@@ -141,17 +152,36 @@ def _pick_python() -> str:
 
 
 # ── 执行器 ─────────────────────────────────────────────────
-def run_research_executor(job: dict, jobs_dir: Path, timeout: int = SUB_TIMEOUT) -> dict:
-    """真实执行器：subprocess 调 research_agent.py --job-id（与 research_service 同契约）。
+def resolve_agent_script(job: dict) -> Path | None:
+    """job.agent_type → 执行脚本路径（分派纯函数，不执行）。
 
+    - agent_type 缺省 → DEFAULT_AGENT_TYPE（老 job 向后兼容）
+    - 注册表未知类型 → None（fail-closed：不静默当 analyst 跑）
+    """
+    agent_type = job.get("agent_type") or DEFAULT_AGENT_TYPE
+    return AGENT_SCRIPTS.get(agent_type)
+
+
+def run_research_executor(job: dict, jobs_dir: Path, timeout: int = SUB_TIMEOUT) -> dict:
+    """真实执行器：按 job.agent_type 分派脚本，subprocess 调 <agent>_agent.py --job-id。
+
+    与 research_service 同契约（analyst → research_agent.py 与现役路径一致）。
     返回 {"status": done|failed, "report_path": str|None, "error": str|None}
     """
     goal = job.get("goal", "")
     job_id = job["job_id"]
+    agent_type = job.get("agent_type") or DEFAULT_AGENT_TYPE
+    script = resolve_agent_script(job)
+    if script is None:
+        return {"status": ST_FAILED, "report_path": None,
+                "error": f"未知 agent_type={agent_type!r}（可用: {list(AGENT_SCRIPTS)}）"}
+    if not script.exists():
+        return {"status": ST_FAILED, "report_path": None,
+                "error": f"agent_type={agent_type} 执行脚本缺失: {script.name}（B/C 交付物未落盘）"}
     py = _pick_python()
     env = os.environ.copy()
-    env.pop("PYTHONPATH", None)  # research_agent 跑批环境要求干净 PYTHONPATH
-    cmd = [py, str(RESEARCH_AGENT), goal, "--job-id", job_id]
+    env.pop("PYTHONPATH", None)  # agent 跑批环境要求干净 PYTHONPATH
+    cmd = [py, str(script), goal, "--job-id", job_id]
 
     try:
         proc = subprocess.run(
@@ -234,6 +264,7 @@ def submit_job(
     max_attempts: int = 3,
     gate: dict | None = None,
     source: str = "orchestrator",
+    agent_type: str = DEFAULT_AGENT_TYPE,
 ) -> dict:
     """创建 queued job（source==orchestrator，供 drain 认领）。"""
     job = {
@@ -252,6 +283,7 @@ def submit_job(
         "attempts": 0,
         "max_attempts": max_attempts,
         "next_retry_at": None,
+        "agent_type": agent_type,
     }
     _write_job(job, jobs_dir)
     _emit("job_queued", job)
@@ -372,6 +404,7 @@ def _list_jobs(jobs_dir: Path, limit: int = 20) -> list[dict]:
             "job_id": data.get("job_id"),
             "status": data.get("status"),
             "goal": (data.get("goal") or "")[:48],
+            "agent_type": data.get("agent_type") or DEFAULT_AGENT_TYPE,
             "attempts": data.get("attempts", 0),
             "max_attempts": data.get("max_attempts", 3),
             "created_at": data.get("created_at"),
@@ -505,6 +538,8 @@ def main() -> int:
     p_submit.add_argument("--category", default=None)
     p_submit.add_argument("--max-attempts", type=int, default=3)
     p_submit.add_argument("--executor", choices=["real", "fake"], default="real")
+    p_submit.add_argument("--agent-type", choices=list(AGENT_SCRIPTS), default=DEFAULT_AGENT_TYPE,
+                          help=f"执行 agent（默认 {DEFAULT_AGENT_TYPE}）")
     p_submit.add_argument("--skip-gate", action="store_true", help="跳过 intent_gate（仅调试用）")
     p_submit.add_argument("--jobs-dir", default=None, help="job 目录覆盖（默认 DATA_DIR/research_jobs）")
 
@@ -537,8 +572,9 @@ def main() -> int:
         if gate:
             print(f"⛔ intent_gate 拦截（{gate.get('rule_version', 'n/a')}）: {gate.get('verdict')} — {gate.get('reason')}")
             return 2
-        job = submit_job(args.goal, jobs_dir, category=args.category, max_attempts=args.max_attempts, gate=gate or {})
-        print(f"已入队: {job['job_id']}  source={job['source']}")
+        job = submit_job(args.goal, jobs_dir, category=args.category, max_attempts=args.max_attempts,
+                         gate=gate or {}, agent_type=args.agent_type)
+        print(f"已入队: {job['job_id']}  source={job['source']}  agent={job['agent_type']}")
         if args.executor == "fake":
             print("fake 执行器冒烟（不调 LLM）…")
             stats = drain_once(jobs_dir, executor=FakeExecutor(jobs_dir), max_workers=1)
@@ -551,7 +587,7 @@ def main() -> int:
 
     if args.cmd == "list":
         for r in _list_jobs(jobs_dir, limit=args.limit):
-            print(f"{r['job_id'][:8]} {r['status']:<7} {r['attempts']}/{r['max_attempts']} {r['goal']}")
+            print(f"{r['job_id'][:8]} {r['status']:<7} {r['agent_type']:<14} {r['attempts']}/{r['max_attempts']} {r['goal']}")
         return 0
 
     if args.cmd == "status":
