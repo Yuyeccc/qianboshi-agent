@@ -30,7 +30,7 @@
 - monitor 规则集仅 P0-PRICE-01 + P2-CACHE-01；P1-HOT/SENT 需涨停池/情绪数据接入
 - my_views quiet_hours 未配置（P2 通知升级时填）
 - agent.py run_schedule 迁入 orchestrator 定时（ADR-001 提及，未动现役）
-- ~~记忆体系 P0~~ ✅ 已落（8f0a97c）：view_lifecycle 两表+migrate+转移入口+日报过滤 facade+lint 初版，flag 默认关待观察后开启；P0.5 evaluate_view_outcomes 已落（249 falsified 回写，confirmed 暂缓待 horizon↔窗口匹配）
+- 记忆体系 P0/P0.5/P1 全 ✅（P0=8f0a97c 状态机骨架 / P0.5=e1138ad 自动评估 249 falsified / P1=44c470e+76ad14b 信念版本链+决策冻结 / 2e24cb2+e9baa16 事件时间轴 12835 事件+MCP timeline）；P0.5b confirmed 256 暂缓（需 horizon↔窗口匹配）；P2 冲突治理/规则闭环/报告互链；flag 仍默认关待观察
 
 ## 铁律与坑（触犯必返工）
 

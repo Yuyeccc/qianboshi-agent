@@ -146,11 +146,60 @@ def run(config: dict[str, Any] | None = None) -> dict[str, Any]:
     if lowq:
         warnings.append(f"{lowq} 条 active 观点无实体且 authority=D（可考虑转 active_low_quality）")
 
+    # ── P1 检查（信念版本链 + 事件时间轴） ──
+    import user_view_versions as uvv
+    import event_timeline as et
+
+    uvv_total = 0
+    try:
+        conn = uvv.connect(db=lc_path)
+        # [P1a] current 孤儿：current 指向不存在版本
+        orphans = conn.execute(
+            """SELECT c.view_key FROM user_view_current c
+               LEFT JOIN user_view_versions v ON v.version_id = c.current_version_id
+               WHERE v.version_id IS NULL""").fetchall()
+        if orphans:
+            warnings.append(f"P1a 版本链 {len(orphans)} 个 current 孤儿: "
+                            f"{[r['view_key'] for r in orphans][:5]}")
+        # [P1a] 投影漂移：my_views.json views[] key 与 current key 集差
+        mv = uvv.read_my_views()
+        file_keys = {v.get("asset") for v in (mv.get("views") or []) if v.get("asset")}
+        cur_keys = {r["view_key"] for r in conn.execute(
+            "SELECT view_key FROM user_view_current").fetchall()}
+        # 末版 retire 的 key 合法不在投影
+        retired = {r["view_key"] for r in conn.execute(
+            "SELECT v.view_key FROM user_view_versions v JOIN user_view_current c "
+            "ON c.view_key=v.view_key AND v.version_id=c.current_version_id "
+            "WHERE v.change_type='retire'").fetchall()}
+        drift_extra = sorted(cur_keys - file_keys - retired)  # 链有文件无（未 retire）=新 key 未重建投影
+        drift_missing = sorted(file_keys - cur_keys)          # 文件有链无=未迁移
+        if drift_extra:
+            warnings.append(f"P1a 投影漂移: 版本链 {len(drift_extra)} key 未入投影文件 "
+                            f"(样例 {drift_extra[:3]}, 跑 append/rebuild_projection)")
+        if drift_missing:
+            warnings.append(f"P1a 投影漂移: my_views.json {len(drift_missing)} key 无版本链 "
+                            f"(样例 {drift_missing[:3]}, 跑 migrate)")
+        uvv_total = conn.execute("SELECT COUNT(*) FROM user_view_versions").fetchone()[0]
+        conn.close()
+    except Exception as e:
+        warnings.append(f"P1a 版本链检查异常: {e}")
+
+    evt_total = 0
+    try:
+        conn = et.connect(db=lc_path)
+        evt_total = et.total(conn)
+        if evt_total == 0:
+            warnings.append("P1b 事件时间轴为空（跑 build_event_timeline.py 存量重建）")
+        conn.close()
+    except Exception as e:
+        warnings.append(f"P1b 事件时间轴检查异常: {e}")
+
     ok = not fails and not warnings
     return {"ok": ok, "fails": fails, "warnings": warnings,
             "summary": {"jsonl_total": total_unique, "lifecycle_total": db_total,
                         "recent_overdue": recent_overdue, "stale_overdue": stale_overdue,
-                        "dup_view_ids": dup_groups, "lowq": lowq}}
+                        "dup_view_ids": dup_groups, "lowq": lowq,
+                        "uvv_versions": uvv_total, "event_total": evt_total}}
 
 
 def main() -> None:
