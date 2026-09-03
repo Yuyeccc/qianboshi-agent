@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "31_risk_v0.1.schema.json",
+  "title": "持仓风险评估报告 v0.1（portfolio_risk agent 产物协议）",
+  "description": "portfolio_risk agent 对照当前真实持仓评估某标的/主题的暴露与风险。确定性字段（holdingsExposure/portfolio/compliance）由代码产出，riskPoints/summary 由 LLM 产出（--no-llm 降级为空数组并给 analysisNote）。不含任何交易指令。",
+  "type": "object",
+  "required": ["goal", "entity", "summary", "holdingsExposure", "riskPoints", "watchlist", "compliance"],
+  "properties": {
+    "goal": { "type": "string", "description": "任务目标（job goal 透传）" },
+    "entity": { "type": "string", "description": "评估标的/主题（与持仓做相关性匹配）" },
+    "generatedAt": { "type": "string" },
+    "summary": { "type": "string", "description": "300 字内结论：目标与当前持仓的关联 + 主要风险" },
+    "holdingsExposure": {
+      "type": "object",
+      "required": ["total", "exposed", "portfolio"],
+      "properties": {
+        "total": { "type": "integer", "description": "当前持仓头寸数" },
+        "exposed": {
+          "type": "array",
+          "description": "与评估标的相关的头寸（确定性关键词匹配 name/sector）",
+          "items": {
+            "type": "object",
+            "required": ["code", "name", "marketCode", "relation"],
+            "properties": {
+              "code": { "type": "string" },
+              "name": { "type": "string" },
+              "marketCode": { "type": "string" },
+              "relation": { "type": "string", "description": "与评估标的的关联方式（如：同属黄金板块）" },
+              "shares": { "type": ["number", "null"] },
+              "avgCost": { "type": ["number", "null"] },
+              "price": { "type": ["number", "null"], "description": "最新价（行情缓存，缺为 null）" },
+              "value": { "type": ["number", "null"], "description": "市值 ≈ shares×price，价缺用 avgCost 近似" },
+              "valueNote": { "type": ["string", "null"], "description": "估值口径说明（如：价缺失，按成本近似）" },
+              "weightPct": { "type": ["number", "null"], "description": "占总资产比例 %" }
+            }
+          }
+        },
+        "portfolio": {
+          "type": "object",
+          "description": "账户快照（来自 portfolio.json account_snapshot）",
+          "properties": {
+            "totalAssets": { "type": ["number", "null"] },
+            "onMarketValue": { "type": ["number", "null"] },
+            "cashAvailable": { "type": ["number", "null"] },
+            "positionPct": { "type": ["number", "null"] },
+            "asOf": { "type": "string" }
+          }
+        }
+      }
+    },
+    "riskPoints": {
+      "type": "array",
+      "description": "风险点（LLM 推理）；LLM 不可用时空数组 + analysisNote 注明",
+      "items": {
+        "type": "object",
+        "required": ["risk", "severity", "rationale"],
+        "properties": {
+          "risk": { "type": "string" },
+          "severity": { "enum": ["high", "medium", "low"] },
+          "rationale": { "type": "string", "description": "推理依据（结合持仓暴露与目标情境）" },
+          "watch": { "type": "string", "description": "观察/失效触发项" }
+        }
+      }
+    },
+    "analysisNote": { "type": "string", "description": "分析降级说明（如 LLM 不可用仅输出确定性暴露）" },
+    "watchlist": {
+      "type": "array",
+      "description": "观察清单（LLM 产出，同 research 协议语义）",
+      "items": {
+        "type": "object",
+        "required": ["text", "trigger"],
+        "properties": {
+          "text": { "type": "string" },
+          "trigger": { "type": "string" }
+        }
+      }
+    },
+    "compliance": {
+      "type": "object",
+      "required": ["passed", "note"],
+      "description": "合规断言：代码固定产出，不经 LLM",
+      "properties": {
+        "passed": { "type": "boolean" },
+        "note": { "type": "string" }
+      }
+    },
+    "_meta": {
+      "type": "object",
+      "description": "运行元数据（非协议内容）",
+      "properties": {
+        "schema_valid": { "type": "boolean" },
+        "schema_errors": { "type": "array", "items": { "type": "string" } },
+        "job_id": { "type": "string" },
+        "agent_type": { "type": "string" },
+        "llm_used": { "type": "boolean" },
+        "generated_at": { "type": "string" }
+      }
+    }
+  }
+}
