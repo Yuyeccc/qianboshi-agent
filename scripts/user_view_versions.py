@@ -152,6 +152,167 @@ def migrate_from_myviews(
             "no_key": no_key, "dry_run": dry_run}
 
 
+def get_current(conn: sqlite3.Connection, view_key: str) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT * FROM user_view_current WHERE view_key=?", (view_key,)
+    ).fetchone()
+
+
+def get_version_chain(conn: sqlite3.Connection, view_key: str) -> list[dict[str, Any]]:
+    """某 view_key 的完整版本链（升序，审计/复盘用）。"""
+    rows = conn.execute(
+        "SELECT version_id, version_no, change_type, change_reason, parent_version_id, "
+        "created_by, created_at, content_json FROM user_view_versions "
+        "WHERE view_key=? ORDER BY version_no", (view_key,)
+    ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["content"] = json.loads(d.pop("content_json"))
+        except Exception:
+            d["content"] = None
+        out.append(d)
+    return out
+
+
+def _content_asset(content: dict[str, Any]) -> str:
+    return str(content.get("asset", ""))
+
+
+def rebuild_projection(
+    conn: sqlite3.Connection,
+    myviews_path: str | Path | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """重建 my_views.json 投影（views 数组 = 版本链 current 的权威投影）。
+
+    - 基准顺序 = 现文件 views[] asset 序（原位保留）；版本链中末版为 retire 的 key 剔除；
+    - 版本链有而文件无、且末版非 retire 的 key（create 场景）追加尾部（按 updated_at 序）；
+    - rule_engine 区原样保留；updated_at 刷新为 now；写回保留 BOM + LF（utf-8-sig）。
+    - 原子写：先备份 .bak_*_pre_append 再 tmp+os.replace。
+    """
+    p = Path(myviews_path) if myviews_path else my_views_path()
+    doc = read_my_views(p)
+    file_keys = [v.get("asset") for v in (doc.get("views") or [])]
+    cur_rows = conn.execute(
+        "SELECT c.view_key, c.current_version_id, c.current_version_no, c.updated_at, "
+        "v.content_json, v.change_type "
+        "FROM user_view_current c JOIN user_view_versions v ON v.version_id=c.current_version_id "
+        "ORDER BY c.updated_at, c.view_key").fetchall()
+    cur_map = {r["view_key"]: r for r in cur_rows}
+
+    rebuilt: list[dict[str, Any]] = []
+    dropped_retired: list[str] = []
+    # 1) 原位：文件顺序为基准
+    for key in file_keys:
+        if not key:
+            continue
+        r = cur_map.get(key)
+        if not r:
+            continue  # 链缺文件有 = 异常态，保守跳过
+        if r["change_type"] == "retire":
+            dropped_retired.append(key)
+            continue
+        content = json.loads(r["content_json"])
+        content.setdefault("asset", key)
+        rebuilt.append(content)
+    # 2) 追加：链有文件无 且 非 retire
+    appended_new: list[str] = []
+    chain_keys = {r["view_key"] for r in cur_rows}
+    for key in chain_keys - set(file_keys):
+        r = cur_map[key]
+        if r["change_type"] == "retire":
+            dropped_retired.append(key)
+            continue
+        content = json.loads(r["content_json"])
+        content.setdefault("asset", key)
+        rebuilt.append(content)
+        appended_new.append(key)
+
+    result = {"rebuilt": len(rebuilt), "dropped_retired": dropped_retired,
+              "appended_new": appended_new, "dry_run": dry_run, "path": str(p)}
+    if dry_run:
+        return result
+
+    doc["views"] = rebuilt
+    doc["updated_at"] = _now()
+    if p.exists():
+        bak = str(p) + f".bak_{datetime.now():%Y%m%d_%H%M%S}_pre_append"
+        shutil.copy2(p, bak)
+        result["backup"] = bak
+    text = json.dumps(doc, ensure_ascii=False, indent=1)
+    tmp = p.with_suffix(".json.tmp")
+    tmp.write_text("\ufeff" + text + "\n", encoding="utf-8", newline="\n")  # BOM+LF
+    tmp.replace(p)
+    return result
+
+
+def append_version(
+    conn: sqlite3.Connection,
+    view_key: str,
+    content: dict[str, Any],
+    change_type: str,
+    change_reason: str,
+    created_by: str = DEFAULT_CREATED_BY,
+    myviews_path: str | Path | None = None,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """唯一正规写入口：写新版本 → 更新 current → 重建投影（原文件先备份）。
+
+    校验：change_type 必在八枚举（split/merge 需多 key 事务，本轮拒绝）；
+    change_reason 必填；content.asset 必须等于 view_key（改名=retire 旧+create 新）。
+    """
+    if change_type not in CHANGE_TYPES:
+        raise ValueError(f"change_type 必须 ∈ {CHANGE_TYPES}")
+    if change_type in ("split", "merge"):
+        raise NotImplementedError("split/merge 需多 key 事务与投影重排，本轮走单 key 蓝图")
+    if not change_reason or not str(change_reason).strip():
+        raise ValueError("change_reason 必填（版本链可追溯的根基）")
+    if _content_asset(content) != view_key:
+        raise ValueError(f"content.asset ({_content_asset(content)!r}) 必须等于 view_key ({view_key!r})")
+    cur = get_current(conn, view_key)
+    if cur is None:
+        if change_type != "create":
+            raise ValueError(f"view_key '{view_key}' 尚无版本链：新 key 需 change_type=create，"
+                             f"存量 key 请先跑 migrate 初始化")
+        parent_id = None
+        new_no = 1
+    else:
+        if change_type == "create":
+            raise ValueError(f"view_key '{view_key}' 已有版本链，create 仅限新 key 首次入链")
+        parent_id = cur["current_version_id"]
+        new_no = int(cur["current_version_no"]) + 1
+
+    new_id = version_id_for(view_key, new_no)
+    content_json = json.dumps(content, ensure_ascii=False)
+    now = _now()
+    result: dict[str, Any] = {
+        "version_id": new_id, "view_key": view_key, "version_no": new_no,
+        "change_type": change_type, "parent_version_id": parent_id,
+        "dry_run": dry_run,
+    }
+    if dry_run:
+        result["projection"] = rebuild_projection(conn, myviews_path, dry_run=True)
+        return result
+
+    conn.execute(
+        "INSERT INTO user_view_versions VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        (new_id, view_key, new_no, content_json, change_type, change_reason,
+         None, None, None, parent_id, created_by, now))
+    conn.execute(
+        """INSERT INTO user_view_current (view_key, current_version_id, current_version_no, updated_at)
+           VALUES (?,?,?,?)
+           ON CONFLICT(view_key) DO UPDATE SET
+             current_version_id=excluded.current_version_id,
+             current_version_no=excluded.current_version_no,
+             updated_at=excluded.updated_at""",
+        (view_key, new_id, new_no, now))
+    conn.commit()
+    result["projection"] = rebuild_projection(conn, myviews_path)
+    return result
+
+
 def stats(conn: sqlite3.Connection) -> dict[str, Any]:
     n_ver = conn.execute("SELECT COUNT(*) FROM user_view_versions").fetchone()[0]
     n_cur = conn.execute("SELECT COUNT(*) FROM user_view_current").fetchone()[0]
@@ -170,8 +331,25 @@ def main() -> None:
     p_mig.add_argument("--dry-run", action="store_true", help="只统计不落库")
     p_mig.add_argument("--db", help="覆盖 lifecycle 库路径")
 
+    p_app = sub.add_parser("append", help="写新信念版本并重建投影（唯一正规写入口）")
+    p_app.add_argument("--view-key", required=True, help="view_key（= views[] 的 asset 字段）")
+    p_app.add_argument("--change-type", required=True, choices=list(CHANGE_TYPES),
+                       help="八枚举之一（split/merge 本轮拒绝）")
+    p_app.add_argument("--reason", required=True, help="变更原因（必填，可追溯根基）")
+    src = p_app.add_mutually_exclusive_group(required=True)
+    src.add_argument("--content-json", help="新版本整条 view 的 JSON 字符串（含 asset 键）")
+    src.add_argument("--content-file", help="新版本整条 view 的 JSON 文件路径")
+    p_app.add_argument("--by", default=DEFAULT_CREATED_BY, help="变更人（默认 manual）")
+    p_app.add_argument("--myviews", help="覆盖 my_views.json 路径")
+    p_app.add_argument("--dry-run", action="store_true", help="预演：不落库不写文件")
+    p_app.add_argument("--db", help="覆盖 lifecycle 库路径")
+
     p_stats = sub.add_parser("stats", help="版本链现状统计")
     p_stats.add_argument("--db", help="覆盖 lifecycle 库路径")
+
+    p_chain = sub.add_parser("chain", help="某 view_key 的完整版本链")
+    p_chain.add_argument("--view-key", required=True)
+    p_chain.add_argument("--db", help="覆盖 lifecycle 库路径")
     args = parser.parse_args()
 
     if args.cmd == "migrate":
@@ -185,6 +363,33 @@ def main() -> None:
             result = migrate_from_myviews(conn, dry_run=args.dry_run)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             print(json.dumps(stats(conn), ensure_ascii=False, indent=2))
+        finally:
+            conn.close()
+    elif args.cmd == "append":
+        conn = connect(db=args.db)
+        try:
+            content = json.loads(args.content_json) if args.content_json \
+                else json.loads(Path(args.content_file).read_text(encoding="utf-8-sig"))
+            result = append_version(
+                conn, args.view_key, content, args.change_type, args.reason,
+                created_by=args.by, myviews_path=args.myviews, dry_run=args.dry_run)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        except (ValueError, NotImplementedError) as e:
+            print(f"[拒绝] {e}")
+            sys.exit(2)
+        finally:
+            conn.close()
+    elif args.cmd == "chain":
+        conn = connect(db=args.db)
+        try:
+            chain = get_version_chain(conn, args.view_key)
+            if not chain:
+                print(f"[无] view_key '{args.view_key}' 无版本记录")
+                sys.exit(1)
+            for v in chain:
+                print(f"v{v['version_no']:02d} {v['version_id']} [{v['change_type']}] "
+                      f"{v['created_at']} parent={v['parent_version_id']} :: {v['change_reason']}")
+                print(f"    {json.dumps(v['content'], ensure_ascii=False)[:160]}")
         finally:
             conn.close()
     elif args.cmd == "stats":

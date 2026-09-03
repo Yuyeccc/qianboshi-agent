@@ -116,3 +116,146 @@ def test_migrate_no_key_row_skipped(tmp_path):
     r = uvv.migrate_from_myviews(conn, myviews_path=p)
     assert r["no_key"] == 1 and r["total"] == 1
     conn.close()
+
+
+# ---------- append（刀1：唯一正规写入口 + 投影重建） ----------
+
+def _mig(env):
+    uvv.migrate_from_myviews(env["conn"], myviews_path=env["myviews"])
+
+
+def _gold_v2_content() -> dict:
+    return {"asset": "黄金", "date": "2026-09-03", "view": "黄金 新观点 v2",
+            "strategy": "回调买入", "status": "关注"}
+
+
+def test_append_increments_to_v2(env):
+    _mig(env)
+    r = uvv.append_version(env["conn"], "黄金", _gold_v2_content(), "strengthen",
+                           "9月验证回调后加仓逻辑更清晰", myviews_path=env["myviews"])
+    assert r["version_no"] == 2 and r["parent_version_id"] == "uvv_黄金_v01"
+    cur = uvv.get_current(env["conn"], "黄金")
+    assert cur["current_version_id"] == "uvv_黄金_v02" and cur["current_version_no"] == 2
+    assert uvv.stats(env["conn"])["versions"] == 7
+    # v1 原文保留
+    v1 = env["conn"].execute(
+        "SELECT content_json FROM user_view_versions WHERE version_id='uvv_黄金_v01'").fetchone()
+    assert "黄金 观点原文" in v1["content_json"]
+
+
+def test_append_multi_versions_chain(env):
+    _mig(env)
+    uvv.append_version(env["conn"], "黄金", _gold_v2_content(), "clarify",
+                       "第一改", myviews_path=env["myviews"])
+    r3 = uvv.append_version(env["conn"], "黄金",
+                            {"asset": "黄金", "view": "黄金 新观点 v3", "status": "关注"},
+                            "weaken", "第二改 减弱", myviews_path=env["myviews"])
+    assert r3["version_no"] == 3 and r3["parent_version_id"] == "uvv_黄金_v02"
+    chain = uvv.get_version_chain(env["conn"], "黄金")
+    assert [v["version_no"] for v in chain] == [1, 2, 3]
+    assert chain[2]["change_type"] == "weaken"
+
+
+def test_append_missing_reason_rejected(env):
+    _mig(env)
+    try:
+        uvv.append_version(env["conn"], "黄金", _gold_v2_content(), "clarify", "   ")
+        assert False, "应拒绝空 reason"
+    except ValueError:
+        pass
+
+
+def test_append_bad_change_type_rejected(env):
+    _mig(env)
+    try:
+        uvv.append_version(env["conn"], "黄金", _gold_v2_content(), "invalid", "原因")
+        assert False, "应拒绝非法 change_type"
+    except ValueError:
+        pass
+
+
+def test_append_split_merge_not_supported(env):
+    _mig(env)
+    try:
+        uvv.append_version(env["conn"], "黄金", _gold_v2_content(), "split", "拆分")
+        assert False, "split 本轮应拒绝"
+    except NotImplementedError:
+        pass
+
+
+def test_append_content_asset_mismatch_rejected(env):
+    _mig(env)
+    try:
+        uvv.append_version(env["conn"], "黄金",
+                           {"asset": "白银", "view": "key 不一致"}, "replace", "原因")
+        assert False, "content.asset 与 view_key 不一致应拒绝"
+    except ValueError:
+        pass
+
+
+def test_append_projection_rebuilt_bom_kept(env):
+    _mig(env)
+    uvv.append_version(env["conn"], "黄金", _gold_v2_content(), "strengthen",
+                       "投影重建验证", myviews_path=env["myviews"])
+    raw = env["myviews"].read_bytes()
+    assert raw.startswith(b"\xef\xbb\xbf")  # BOM 保留
+    assert b"\r\n" not in raw  # LF 保持
+    d = json.loads(raw.decode("utf-8-sig"))
+    keys = [v["asset"] for v in d["views"]]
+    assert keys == env["keys"]  # 顺序原位保持
+    gold = next(v for v in d["views"] if v["asset"] == "黄金")
+    assert gold["view"] == "黄金 新观点 v2"
+    assert d["rule_engine"] == {"version": "1.0"}  # rule_engine 原样保留
+    assert d["updated_at"] != "2026-08-05"
+    # 备份已生成
+    baks = list(env["myviews"].parent.glob("my_views.json.bak_*_pre_append"))
+    assert len(baks) == 1
+
+
+def test_append_retire_removes_from_projection(env):
+    _mig(env)
+    uvv.append_version(env["conn"], "白酒",
+                       {"asset": "白酒", "view": "白酒 最后版", "status": "回避"},
+                       "retire", "白酒 观察结束，退出跟踪", myviews_path=env["myviews"])
+    d = json.loads(env["myviews"].read_text(encoding="utf-8-sig"))
+    keys = [v["asset"] for v in d["views"]]
+    assert "白酒" not in keys and len(keys) == 5
+    # 版本链仍完整保留
+    chain = uvv.get_version_chain(env["conn"], "白酒")
+    assert len(chain) == 2 and chain[1]["change_type"] == "retire"
+
+
+def test_append_create_new_key_tail(env):
+    _mig(env)
+    # create 已在链的 key 拒绝
+    try:
+        uvv.append_version(env["conn"], "黄金", _gold_v2_content(), "create", "重复建")
+        assert False, "create 仅限新 key，已链 key 应拒绝"
+    except ValueError:
+        pass
+    # create 新 key：v1 建链 + 投影尾部追加
+    r = uvv.append_version(env["conn"], "科技ETF",
+                           {"asset": "科技ETF", "view": "新标的 观点"}, "create",
+                           "用户新关注标的入链", myviews_path=env["myviews"])
+    assert r["version_no"] == 1 and r["parent_version_id"] is None
+    cur = uvv.get_current(env["conn"], "科技ETF")
+    assert cur["current_version_id"] == "uvv_科技ETF_v01"
+    d = json.loads(env["myviews"].read_text(encoding="utf-8-sig"))
+    assert [v["asset"] for v in d["views"]][-1] == "科技ETF"
+    # create 后 clarify v2
+    r2 = uvv.append_version(env["conn"], "科技ETF",
+                            {"asset": "科技ETF", "view": "新标的 澄清 v2"}, "clarify",
+                            "补充逻辑", myviews_path=env["myviews"])
+    assert r2["version_no"] == 2 and r2["parent_version_id"] == "uvv_科技ETF_v01"
+
+
+def test_append_dry_run_no_side_effect(env):
+    _mig(env)
+    before_ver = uvv.stats(env["conn"])["versions"]
+    before_file = env["myviews"].read_bytes()
+    r = uvv.append_version(env["conn"], "黄金", _gold_v2_content(), "strengthen",
+                           "dry 预演", myviews_path=env["myviews"], dry_run=True)
+    assert r["dry_run"] and r["version_no"] == 2
+    assert uvv.stats(env["conn"])["versions"] == before_ver  # 未落库
+    assert env["myviews"].read_bytes() == before_file  # 文件未动
+    assert not list(env["myviews"].parent.glob("my_views.json.bak_*"))
