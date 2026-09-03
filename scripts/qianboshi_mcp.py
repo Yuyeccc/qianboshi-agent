@@ -254,7 +254,7 @@ def _conflicts_conn():
     sys.path.insert(0, str(PROJ / "scripts"))
     import memory_conflicts as mcx
     from view_lifecycle import db_path
-    conn = mcx.connect(db=db_path())
+    conn = mcx.connect(db_path=db_path())
     mcx.ensure_schema(conn)
     return conn, mcx
 
@@ -304,6 +304,59 @@ def conflicts_stats() -> str:
                                  ensure_ascii=False, indent=1), tool="conflicts_stats")
     except Exception as e:
         return _gated(f"冲突统计失败: {e}", tool="conflicts_stats")
+
+
+# ─── 规则生命周期工具（P2 刀2） ─────────────────────
+
+
+def _rules_conn():
+    """规则库只读连接（lifecycle 库内 rule_lifecycle 表）。"""
+    sys.path.insert(0, str(PROJ / "scripts"))
+    import rule_lifecycle as rlx
+    from view_lifecycle import db_path
+    conn = rlx.connect(db_path=db_path())
+    rlx.ensure_schema(conn)
+    return conn, rlx
+
+
+@mcp.tool()
+def rules_list(state: str = "active", limit: int = 20) -> str:
+    """规则生命周期清单（默认 active）。state 可选 proposed/trial/active/suspended/retired。
+    返回规则 JSON：rule_text/scope/state/来源(decision_review/manual_legacy/manual)/激活时间。"""
+    try:
+        conn, rlx = _rules_conn()
+        try:
+            q = "SELECT rule_id, rule_text, scope, action, state, rule_source, activated_at, created_at "
+            q += "FROM rule_lifecycle WHERE 1=1"
+            params: list = []
+            if state:
+                q += " AND state=?"
+                params.append(state)
+            q += " ORDER BY created_at DESC LIMIT ?"
+            params.append(min(int(limit), 100))
+            rows = [dict(r) for r in conn.execute(q, params).fetchall()]
+        finally:
+            conn.close()
+        return _gated(json.dumps({"count": len(rows), "items": rows},
+                                 ensure_ascii=False, indent=1), tool="rules_list")
+    except Exception as e:
+        return _gated(f"规则清单查询失败: {e}", tool="rules_list")
+
+
+@mcp.tool()
+def rules_stats() -> str:
+    """规则生命周期统计（按 state 分布）。"""
+    try:
+        conn, rlx = _rules_conn()
+        try:
+            rows = [dict(r) for r in conn.execute(
+                "SELECT state, COUNT(*) n FROM rule_lifecycle GROUP BY state").fetchall()]
+        finally:
+            conn.close()
+        return _gated(json.dumps({"by_state": rows}, ensure_ascii=False, indent=1),
+                      tool="rules_stats")
+    except Exception as e:
+        return _gated(f"规则统计失败: {e}", tool="rules_stats")
 
 
 if __name__ == "__main__":
