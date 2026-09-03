@@ -115,6 +115,16 @@ class OrchestratorTests(unittest.TestCase):
         self.assertEqual(fired["failed"], 1)
         self.assertGreaterEqual(fired["retry"], 1)
 
+    def test_claim_monitor_source_job(self):
+        # E (P2): L4 补缺 job(source=monitor) 被 drain 认领流转（自产自销，无双头）
+        job = submit_job("补缺研究", self.jobs, max_attempts=1,
+                         source="monitor", agent_type="analyst")
+        stats = drain_once(self.jobs, executor=self.fake, max_workers=1)
+        self.assertEqual(stats["claimed"], 1)
+        self.assertEqual(stats["done"], 1)
+        final = json.loads((self.jobs / f"{job['job_id']}.json").read_text(encoding="utf-8"))
+        self.assertEqual(final["status"], ST_DONE)
+
     def test_claim_only_own_source(self):
         """drain 不认领非 orchestrator 的 queued 任务（防与 research_service 双头执行）。"""
         job = submit_job("外部任务", self.jobs, max_attempts=1, source="research_service")

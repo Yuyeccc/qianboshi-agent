@@ -11,8 +11,9 @@ orchestrator.py —— 钱博士统一编排层（P1 最小版，ADR-001）
 与 portfolio backend/app/research_service.py 的关系：
     - 两者共享同一 job 目录 schema（DATA_DIR/research_jobs/*.json），job 字段兼容
     - research_service 由作品集 API 直接提交并自跑（daemon 线程）；
-      orchestrator 是 agent 侧统一编排入口，drain 只认领 source=="orchestrator" 的
-      queued 任务，绝不抢 research_service 的任务（防双头并发执行同一 job）
+      orchestrator 是 agent 侧统一编排入口，drain 认领 source∈{orchestrator, monitor}
+      （monitor L4 补缺 job 为自产——monitor 巡检命中写队列、orchestrator 调度执行；
+      research_service 任务无 source 字段不匹配，绝不抢——防双头并发执行同一 job）
     - 架构演进方向（架构文档 v5 §3.3）：研究提交路径唯一化
       前端 → intent_gate → Orchestrator → research_agent
 
@@ -80,6 +81,9 @@ AGENT_SCRIPTS: dict[str, Path] = {
 
 # job 状态机合法值（与 research_service 对齐）
 ST_QUEUED, ST_RUNNING, ST_DONE, ST_FAILED = "queued", "running", "done", "failed"
+
+# drain 认领白名单：orchestrator 提交 + monitor L4 补缺（自产自销，无双头风险）
+CLAIM_SOURCES = ("orchestrator", "monitor")
 
 # 事件钩子注册表：event -> [fn(job)]（L2/L3/L4 monitor 挂载点）
 EVENT_HOOKS: dict[str, list] = {"job_queued": [], "job_started": [], "job_done": [], "job_failed": [], "job_retry": []}
@@ -299,7 +303,7 @@ def _claim_queued(jobs_dir: Path, worker: str, now: datetime) -> list[dict]:
             job = json.loads(p.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
-        if job.get("status") != ST_QUEUED or job.get("source") != "orchestrator":
+        if job.get("status") != ST_QUEUED or job.get("source") not in CLAIM_SOURCES:
             continue
         nra = job.get("next_retry_at")
         if nra:
