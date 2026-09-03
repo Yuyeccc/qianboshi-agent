@@ -31,10 +31,24 @@ def main() -> None:
     parser.add_argument("--db", help="覆盖 lifecycle 库路径（事件落点）")
     parser.add_argument("--decision-db", help="覆盖决策源库路径")
     parser.add_argument("--jsonl", help="覆盖 structured_views.jsonl 路径")
+    parser.add_argument("--research-dir", help="覆盖研究报告中目录（默认 data/research）")
+    parser.add_argument("--no-scan-reports", action="store_true",
+                        help="跳过 P2 刀3 报告前置登记（默认 scan 幂等登记后事件化）")
     args = parser.parse_args()
 
     ev_db = args.db or view_lifecycle.db_path()
     dec_db = args.decision_db or decision_db_path()
+
+    # P2 刀3：报告登记前置（幂等，report_docs 是 report_generated 事件源）
+    if not args.no_scan_reports:
+        from types import SimpleNamespace
+        import report_docs as rdoc
+        rd_args = SimpleNamespace(
+            dry_run=args.dry_run,
+            dir=args.research_dir or str(Path(__file__).resolve().parent.parent / "data" / "research"),
+            views=args.jsonl or str(Path(__file__).resolve().parent.parent / "data" / "views" / "structured_views.jsonl"),
+            db=ev_db)
+        rdoc.cmd_scan(rd_args)
 
     conn = evt.connect(db=ev_db)
     before = evt.count_by_type(conn)

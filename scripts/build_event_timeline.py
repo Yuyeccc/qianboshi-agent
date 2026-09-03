@@ -272,6 +272,40 @@ def _build_user_view_changed(ev: sqlite3.Connection, dry_run: bool) -> dict:
     return stats
 
 
+def _build_report_docs(ev: sqlite3.Connection, dry_run: bool) -> dict:
+    """report_generated：report_docs 登记行 → 事件（P2 刀3，03 §7.3 好答案回填落事件层）。
+
+    payload 只含稳定字段（doc_id/report_type/generated_at/file_sha256），内容寻址指纹稳定；
+    entity_key/status 是治理字段不参与事件 payload（supersede 不重建事件）。
+    """
+    stats = {"report_generated": 0, "report_linked_views": 0}
+    try:
+        rows = ev.execute("SELECT * FROM report_docs ORDER BY created_at").fetchall()
+    except sqlite3.Error:
+        return stats  # 表未建（旧库）→ 0，不阻断
+    for r in rows:
+        d = dict(r)
+        payload = {"doc_id": d["doc_id"], "report_type": d["report_type"],
+                   "generated_at": d["generated_at"], "file_sha256": d["file_sha256"]}
+        occurred = _iso_or(d["generated_at"], d["created_at"])
+        title = f"报告生成 {d['doc_id']} ({d['report_type']})"
+        if not dry_run:
+            res = evt.insert_event(ev, "report_generated", occurred, "system", title,
+                                   (d["entity_key"] or "entity 未标")[:200],
+                                   f"report_docs/{d['doc_id']}", payload)
+            evt.link_event(ev, res["event_id"], "report", d["doc_id"], "generated")
+            # 报告→观点互链（opinions 强匹配回填）
+            try:
+                vids = json.loads(d["linked_view_ids"] or "[]")
+            except Exception:
+                vids = []
+            for vid in vids:
+                evt.link_event(ev, res["event_id"], "view", vid, "cited_in")
+                stats["report_linked_views"] += 1
+        stats["report_generated"] += 1
+    return stats
+
+
 def build_all(
     ev_db: str | Path,
     decision_db: str | Path,
@@ -288,11 +322,12 @@ def build_all(
         jp = jsonl_path or view_store.views_path()
         s5 = _build_view_events(ev, jp, dry_run)
         s6 = _build_user_view_changed(ev, dry_run)
+        s7 = _build_report_docs(ev, dry_run)
     finally:
         src.close()
     if not dry_run:
         ev.commit()
-    result = {**s1, **s2, **s3, **s4, **s5, **s6,
+    result = {**s1, **s2, **s3, **s4, **s5, **s6, **s7,
               "dry_run": dry_run, "total_events": evt.total(ev)}
     ev.close()
     return result
