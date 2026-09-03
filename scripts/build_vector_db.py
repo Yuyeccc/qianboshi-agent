@@ -427,6 +427,163 @@ def scan_and_upsert(config, verbose=True):
     print(f"\n✅ 增量更新完成: +{len(new_files)}新 / ~{len(modified_files)}改")
 
 
+# ─── 报告域（P2 刀4：报告 doc 进 chroma 带 status metadata） ─────────
+
+REPORT_SOURCE_PREFIX = "report:"
+
+
+def _report_docs_conn():
+    """report_docs 权威表连接（view_lifecycle.db）。"""
+    import sqlite3 as _sq
+    db = Path(__file__).resolve().parent.parent / "data" / "views" / "view_lifecycle.db"
+    con = _sq.connect(str(db))
+    con.row_factory = _sq.Row
+    return con
+
+
+def _report_serialize(d: dict) -> str:
+    """报告 JSON → 可检索文本（召回用；原文权威在 report_docs/report 文件）。"""
+    parts = []
+    for k in ("goal", "entity", "coreIssue", "summary"):
+        v = d.get(k)
+        if v:
+            parts.append(f"{k}: {v}")
+    for sec, key in (("facts", "text"), ("opinions", "text"), ("riskPoints", "risk"),
+                     ("watchlist", "name"), ("scenarios", "name")):
+        for it in d.get(sec) or []:
+            if isinstance(it, dict):
+                t = it.get(key)
+                if t:
+                    parts.append(f"{sec}: {t}")
+    exp = d.get("holdingsExposure") or {}
+    for e in exp.get("exposed") or []:
+        if isinstance(e, dict) and e.get("name"):
+            parts.append(f"持仓暴露: {e.get('name')} ({e.get('marketCode') or e.get('code') or ''}) "
+                         f"仓位 {e.get('weightPct')}% 关系 {e.get('relation')}")
+    # \n\n 段落分隔：chunk_markdown 按 \n\n 切段，单 \n 会整篇合成 1 大 chunk（embedding 截断）
+    return "\n\n".join(parts)
+
+
+def upsert_report(doc_id: str, config, verbose=True, force: bool = False) -> bool:
+    """report_docs valid 报告 → chroma（metadata 带 status/doc_type/entity_key）。"""
+    from pathlib import Path as _P
+    root = _P(__file__).resolve().parent.parent
+    con = _report_docs_conn()
+    try:
+        row = con.execute("SELECT * FROM report_docs WHERE doc_id=?", (doc_id,)).fetchone()
+    finally:
+        con.close()
+    if not row:
+        print(f"[ERROR] report_docs 无此登记: {doc_id}（先跑 report_docs.py scan）")
+        return False
+    if row["status"] != "valid":
+        print(f"[SKIP] {doc_id} status={row['status']} 非 valid，不索引（用 --remove-report）")
+        return False
+    fpath = root / row["file_path"]
+    if not fpath.exists():
+        print(f"[ERROR] 报告文件不存在: {fpath}")
+        return False
+    try:
+        import json as _json
+        d = _json.loads(fpath.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"[ERROR] 报告解析失败 {doc_id}: {e}")
+        return False
+
+    vector_db_path = _resolve_vector_db(config)
+    collection = _get_or_create_collection(config, vector_db_path)
+    index = ChunkIndex(vector_db_path).load()
+    key = REPORT_SOURCE_PREFIX + doc_id
+    entry = index.get(key)
+
+    # 内容未变跳过（sha256 比较；force=True 强制重索引，序列化逻辑升级后手动触发）
+    if not force and entry and entry.get("sha256") and entry["sha256"] == row["file_sha256"][:16]:
+        if verbose:
+            print(f"[UNCHANGED] {key}（内容一致）")
+        return True
+
+    if entry and entry.get("chunk_ids"):
+        try:
+            collection.delete(ids=entry["chunk_ids"])
+            if verbose:
+                print(f"  删除旧chunks: {len(entry['chunk_ids'])} 条")
+        except Exception as e:
+            print(f"  [WARN] 删除旧chunks失败: {e}")
+
+    text = _report_serialize(d)
+    if not text.strip():
+        print(f"  [WARN] {doc_id} 无可检索内容")
+        return False
+    source = key
+    chunks = chunk_markdown(text, source, config["chunk_size"], config["chunk_overlap"])
+    ids, docs, metas = [], [], []
+    for c in chunks:
+        ids.append(make_chunk_id(c["source"], c["chunk_id"]))
+        docs.append(c["content"])
+        metas.append({
+            "source": c["source"], "section": c["section"], "chunk_id": c["chunk_id"],
+            "doc_type": "report", "status": row["status"],
+            "entity_key": row["entity_key"] or "",
+            "linked_view_ids": row["linked_view_ids"] or "[]",
+            "generated_at": row["generated_at"] or "",
+        })
+    batch_size = 50
+    for i in range(0, len(ids), batch_size):
+        collection.upsert(documents=docs[i:i + batch_size],
+                          metadatas=metas[i:i + batch_size], ids=ids[i:i + batch_size])
+    index.set(key, ids, file_path=fpath)
+    index.save()
+    if verbose:
+        print(f"[UPSERT] {key}: {len(chunks)} chunks（status={row['status']}）")
+    return True
+
+
+def remove_report(doc_id: str, config, verbose=True) -> bool:
+    """报告 chunks 移出 chroma（superseded/retracted 时调用）。"""
+    vector_db_path = _resolve_vector_db(config)
+    index = ChunkIndex(vector_db_path).load()
+    key = REPORT_SOURCE_PREFIX + doc_id
+    entry = index.get(key)
+    if not entry or not entry.get("chunk_ids"):
+        print(f"[REMOVE] {key}: 未在索引中")
+        return False
+    collection = _get_or_create_collection(config, vector_db_path)
+    try:
+        collection.delete(ids=entry["chunk_ids"])
+        if verbose:
+            print(f"[REMOVE] {key}: 已删除 {len(entry['chunk_ids'])} chunks")
+    except Exception as e:
+        print(f"[ERROR] 删除失败: {e}")
+        return False
+    index.remove(key)
+    index.save()
+    return True
+
+
+def sync_reports(config, verbose=True, force: bool = True) -> None:
+    """report_docs 全量同步：valid → upsert；superseded/retracted → remove。
+
+    force 默认 True：报告量小（11 份级），全量重索引幂等安全——序列化/分块逻辑升级后
+    无需手动逐份 force（notes 增量走 --scan 不受影响）。
+    """
+    con = _report_docs_conn()
+    try:
+        rows = con.execute("SELECT doc_id, status FROM report_docs ORDER BY doc_id").fetchall()
+    finally:
+        con.close()
+    n_up = n_rm = n_skip = 0
+    for r in rows:
+        if r["status"] == "valid":
+            if upsert_report(r["doc_id"], config, verbose=False, force=force):
+                n_up += 1
+            else:
+                n_skip += 1
+        else:
+            if remove_report(r["doc_id"], config, verbose=False):
+                n_rm += 1
+    print(f"[SYNC-REPORTS] valid upsert {n_up}  非 valid remove {n_rm}  跳过 {n_skip}")
+
+
 # ─── CLI ──────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -437,6 +594,10 @@ if __name__ == "__main__":
     parser.add_argument("--scan", action="store_true", help="自动检测并增量更新")
     parser.add_argument("--obsidian-path", help="覆盖Obsidian路径")
     parser.add_argument("--config", help="指定config.yaml路径")
+    parser.add_argument("--sync-reports", action="store_true",
+                        help="P2 刀4：报告同步（report_docs valid→upsert 带 status metadata；非 valid→remove）")
+    parser.add_argument("--upsert-report", help="单份报告 upsert（doc_id）")
+    parser.add_argument("--remove-report", help="单份报告 remove（doc_id）")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -451,6 +612,12 @@ if __name__ == "__main__":
         remove_note(args.remove, config)
     elif args.scan:
         scan_and_upsert(config)
+    elif args.sync_reports:
+        sync_reports(config)
+    elif args.upsert_report:
+        upsert_report(args.upsert_report, config)
+    elif args.remove_report:
+        remove_report(args.remove_report, config)
     else:
         # 默认：如果向量库不存在则新建，否则提示
         vector_db_path = _resolve_vector_db(config)
@@ -459,7 +626,8 @@ if __name__ == "__main__":
             rebuild_all(config)
         else:
             print("向量库已存在。可用操作：")
-            print("  --rebuild   全量重建")
-            print("  --upsert X  增量添加/更新单篇笔记")
-            print("  --remove X  删除单篇笔记")
-            print("  --scan      自动检测新增/修改")
+            print("  --rebuild       全量重建")
+            print("  --upsert X      增量添加/更新单篇笔记")
+            print("  --remove X      删除单篇笔记")
+            print("  --scan          自动检测新增/修改")
+            print("  --sync-reports  报告同步（valid→索引 / 非 valid→移除）")

@@ -44,6 +44,15 @@ QUERY_KEYWORDS = {
 def _contains_banned_source(source):
     return any(b in (source or "") for b in BANNED_SOURCES)
 
+
+def _report_status_ok(meta):
+    """P2 刀4 状态过滤：报告 chunk 非 valid（superseded/retracted）检索侧剔除。
+
+    笔记 chunks 无 doc_type/status → 不受影响（返回 True）。"""
+    if meta.get("doc_type") != "report":
+        return True
+    return meta.get("status") in (None, "valid")
+
 def _keyword_overlap_ok(query, source, section, content):
     haystack = f"{source} {section} {content}".lower()
     query_upper = query.upper()
@@ -95,7 +104,7 @@ class QianboshiRAG:
                     "similarity": 0.6, "freshness": 0.2, "type_boost": 0.2,
                 }),
                 "type_weights": cfg.get("rag", {}).get("type_weights", {
-                    "short_video": 1.0, "livestream": 0.8, "catalog": 0.0,
+                    "short_video": 1.0, "livestream": 0.8, "catalog": 0.0, "report": 1.1,
                 }),
             }
         except Exception:
@@ -139,9 +148,11 @@ class QianboshiRAG:
 
     @staticmethod
     def _classify_source(source):
-        """判断文档类型：short_video / livestream / catalog"""
+        """判断文档类型：short_video / livestream / catalog / report"""
         if not source:
             return "catalog"
+        if source.startswith("report:"):
+            return "report"
         if "短视频解读" in source:
             return "short_video"
         if "直播复盘" in source or "钱博士直播" in source:
@@ -155,6 +166,12 @@ class QianboshiRAG:
         """从文件名或pubdate缓存提取日期，返回 date 对象"""
         if not source:
             return date(2026, 6, 1)
+        # 格式0: report:20260903_185657_xxx（P2 刀4 报告 doc_id 紧凑日期）
+        if source.startswith("report:"):
+            match = re.search(r"report:(\d{4})(\d{2})(\d{2})", source)
+            if match:
+                y, m, d = int(match.group(1)), int(match.group(2)), int(match.group(3))
+                return date(y, m, d)
         # 格式1: 2026.6.25
         match = re.search(r'(\d{4})\.(\d{1,2})\.(\d{1,2})', source)
         if match:
@@ -269,6 +286,10 @@ class QianboshiRAG:
             source = meta.get("source", "unknown")
             section = meta.get("section", "")
             doc_type = self._classify_source(source)
+            # P2 刀4 状态过滤：报告 chunk 带 doc_type/status metadata，非 valid（superseded/retracted）
+            # 检索侧剔除（笔记 chunks 无 status 字段不受影响）；向量库只做召回不做事实源
+            if not _report_status_ok(meta):
+                continue
             doc_date = self._extract_date(source)
             if query_dates and doc_date not in query_dates:
                 continue
@@ -294,6 +315,9 @@ class QianboshiRAG:
                     "date": date_str,
                     "type": doc_type,
                     "weights": weight_detail,
+                    "doc_type": meta.get("doc_type"),
+                    "status": meta.get("status"),
+                    "entity_key": meta.get("entity_key"),
                 }
             )
 
