@@ -246,5 +246,65 @@ def timeline_trace_decision(decision_id: str) -> str:
         return _gated(f"决策链回放失败: {e}", tool="timeline_trace_decision")
 
 
+# ─── 记忆冲突工具（P2 刀1） ─────────────────────────
+
+
+def _conflicts_conn():
+    """记忆冲突库只读连接（lifecycle 库内 memory_conflicts 表）。"""
+    sys.path.insert(0, str(PROJ / "scripts"))
+    import memory_conflicts as mcx
+    from view_lifecycle import db_path
+    conn = mcx.connect(db=db_path())
+    mcx.ensure_schema(conn)
+    return conn, mcx
+
+
+@mcp.tool()
+def conflicts_list(conflict_type: str = "", status: str = "open", limit: int = 20) -> str:
+    """记忆冲突清单（方向/时域/用户信念对峙，默认 open 待人工裁决）。
+    conflict_type 可选: direction(同实体同周期多空对峙)/temporal(分析师换向未supersede)/
+    user_belief(用户信念vs现役观点)/factual/rule；status: open/resolved/dismissed。
+    返回冲突 JSON：entity_key/horizon/对峙双方 view_id 与 stance/证据摘要。"""
+    try:
+        conn, mcx = _conflicts_conn()
+        try:
+            q = "SELECT * FROM memory_conflicts WHERE 1=1"
+            params: list = []
+            if status:
+                q += " AND status=?"
+                params.append(status)
+            if conflict_type:
+                q += " AND conflict_type=?"
+                params.append(conflict_type)
+            q += " ORDER BY created_at DESC LIMIT ?"
+            params.append(min(int(limit), 100))
+            rows = [dict(r) for r in conn.execute(q, params).fetchall()]
+        finally:
+            conn.close()
+        return _gated(json.dumps({"count": len(rows), "items": rows},
+                                 ensure_ascii=False, indent=1), tool="conflicts_list")
+    except Exception as e:
+        return _gated(f"冲突清单查询失败: {e}", tool="conflicts_list")
+
+
+@mcp.tool()
+def conflicts_stats() -> str:
+    """记忆冲突统计（按 conflict_type × status 分布 + open 总数）。"""
+    try:
+        conn, mcx = _conflicts_conn()
+        try:
+            rows = [dict(r) for r in conn.execute(
+                "SELECT conflict_type, status, COUNT(*) n FROM memory_conflicts "
+                "GROUP BY conflict_type, status ORDER BY conflict_type, status").fetchall()]
+            total = conn.execute("SELECT COUNT(*) FROM memory_conflicts").fetchone()[0]
+            open_n = conn.execute("SELECT COUNT(*) FROM memory_conflicts WHERE status='open'").fetchone()[0]
+        finally:
+            conn.close()
+        return _gated(json.dumps({"total": total, "open": open_n, "by_type_status": rows},
+                                 ensure_ascii=False, indent=1), tool="conflicts_stats")
+    except Exception as e:
+        return _gated(f"冲突统计失败: {e}", tool="conflicts_stats")
+
+
 if __name__ == "__main__":
     mcp.run()
