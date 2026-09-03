@@ -18,6 +18,17 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config_loader import get_data_dir, load_config
 from entity_normalizer import entity_overlap, extract_entities, is_banned_source, load_aliases
 
+# 观点生命周期（记忆体系 P0）：延迟 import 防循环（view_lifecycle 仅在函数内引用 view_store）
+_LIFECYCLE = None
+
+
+def _lifecycle_module():
+    global _LIFECYCLE
+    if _LIFECYCLE is None:
+        import view_lifecycle
+        _LIFECYCLE = view_lifecycle
+    return _LIFECYCLE
+
 
 SOURCE_QUALITY = {
     "钱博士直播": 1.00,
@@ -212,6 +223,19 @@ def score_view(v: dict[str, Any], ent_score: float = 0.0) -> float:
     )
 
 
+def _lifecycle_status_map(config: dict[str, Any] | None = None) -> dict[str, str] | None:
+    """lifecycle 过滤映射：flag(memory.view_lifecycle_enabled) 开且 db 存在 → view_id->status。
+    flag 关 / db 缺失 / 异常 → None（不过滤，日报链路不破）。"""
+    try:
+        lc = _lifecycle_module()
+        if not lc.enabled(config):
+            return None
+        sm = lc.status_map(config=config)
+        return sm if sm else None
+    except Exception:
+        return None
+
+
 def filter_views(
     views: list[dict[str, Any]],
     entity: str | None = None,
@@ -222,8 +246,15 @@ def filter_views(
 ) -> list[dict[str, Any]]:
     aliases = load_aliases()
     start, end = parse_date_range(date_range)
+    # 记忆体系 P0：lifecycle 状态过滤（默认 flag=false 不生效；开启后 falsified/expired/superseded 不作为当前建议）
+    lc_map = _lifecycle_status_map()
     out = []
     for v in views:
+        if lc_map is not None:
+            st = lc_map.get(v.get("view_id"))
+            # 未迁移观点(st=None)保留（向后兼容）；已迁移仅 active/confirmed/active_low_quality 可引用
+            if st is not None and st not in ("active", "confirmed", "active_low_quality"):
+                continue
         d = parse_date(v.get("date"))
         if start and (not d or d < start):
             continue

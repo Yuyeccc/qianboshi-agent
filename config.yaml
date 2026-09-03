@@ -16,6 +16,13 @@ paths:
   # 日志目录
   log_dir: ./logs
 
+memory:
+  # 记忆体系 P0（架构文档 v6 §5.1 / ADR-004）：观点生命周期过滤
+  # false=旧行为（excluded 黑名单过滤）；true=额外按 lifecycle 状态过滤（active/confirmed/active_low_quality）
+  view_lifecycle_enabled: false
+  # lifecycle 库路径（空= data_dir/views/view_lifecycle.db）
+  view_lifecycle_db: ""
+
 rag:
   vector_db_path: ""           # 空=使用 data_dir/vector_db
   collection_name: qianboshi
