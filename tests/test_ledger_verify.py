@@ -45,7 +45,8 @@ class LedgerVerifyTests(unittest.TestCase):
         pf = json.loads(PORTFOLIO.read_text(encoding="utf-8-sig"))
         r = verify_ledger(pf)
         self.assertTrue(r["ok"], f"errors: {r['errors']}")
-        self.assertEqual(r["checks"]["buy_total"], 2289.01)
+        # 真实数据回归快照（9/2 账户更新后：8/31 新增 518880+601668 两笔买入 2726.36）
+        self.assertEqual(r["checks"]["buy_total"], 5015.37)
         self.assertEqual(r["checks"]["sell_total"], 1917.92)
 
     def test_02_synthetic_base_passes(self):
@@ -104,9 +105,9 @@ class DisciplineRegressionTests(unittest.TestCase):
         pf = json.loads(PORTFOLIO.read_text(encoding="utf-8-sig"))
         rules = json.loads((ROOT / "config" / "discipline_rules.json").read_text(encoding="utf-8-sig"))
         r = check_discipline(pf, rules)
-        self.assertEqual(r["net_invested"], 371.09)
+        self.assertEqual(r["net_invested"], 3097.45)
         self.assertEqual(r["drawdown_status"], "profit")
-        self.assertEqual(r["cost_drawdown"], -0.3474)
+        self.assertEqual(r["cost_drawdown"], -0.0416)
         # 真实违规照常（主题/单标的超限）
         types = {v["type"] for v in r["violations"]}
         self.assertIn("theme_cap", types)

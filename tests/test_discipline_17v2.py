@@ -37,12 +37,12 @@ class CostDrawdownTests(unittest.TestCase):
     """P0 成本口径回撤（方案二）"""
 
     def test_01_profit_portfolio_no_false_drawdown(self):
-        """盈利组合不误报（当前真实数据回归：net=371.09 → drawdown=-34.7% profit）"""
+        """盈利组合不误报（真实数据回归：9/2 账户更新后 net=3097.45 → drawdown=-4.16% profit）"""
         portfolio = json.loads((ROOT / "data" / "portfolio.json").read_text(encoding="utf-8-sig"))
         r = check_discipline(portfolio, RULES)
         self.assertEqual(r["drawdown_status"], "profit")
         self.assertLess(r["cost_drawdown"], 0)
-        self.assertEqual(r["net_invested"], 371.09)
+        self.assertEqual(r["net_invested"], 3097.45)
         self.assertFalse(any(v["type"] == "drawdown_switch" for v in r["violations"]))
         # 真实数据有主题/单标的超限 → ok=False 但无回撤误报
         self.assertFalse(r["ok"])
