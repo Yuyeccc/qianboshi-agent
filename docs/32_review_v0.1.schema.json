@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "32_review_v0.1.schema.json",
+  "title": "决策复盘报告 v0.1（decision_review agent 产物协议）",
+  "description": "decision_review agent 对用户决策日志（qianboshi_decision.db user_decision_logs + decision_reviews）做复盘：判定结果复用现役回填数据，lessons/认知修正由 LLM 产出（降级为空数组 + analysisNote）。不含任何交易指令。",
+  "type": "object",
+  "required": ["goal", "entity", "decisionId", "reviewStatus", "decision", "outcome", "assessment", "lessons", "compliance"],
+  "properties": {
+    "goal": { "type": "string", "description": "任务目标（job goal 透传）" },
+    "entity": { "type": "string", "description": "复盘标的/主题（asset_id 或名称；无匹配取最新决策）" },
+    "generatedAt": { "type": "string" },
+    "decisionId": { "type": "string" },
+    "reviewStatus": { "enum": ["reviewed", "pending_outcome", "no_decision_found"], "description": "reviewed=现役已回填判定；pending_outcome=决策未到期无判定；no_decision_found=无匹配决策" },
+    "decision": {
+      "type": "object",
+      "required": ["assetId", "assetName", "direction", "decisionDate"],
+      "properties": {
+        "assetId": { "type": "string" },
+        "assetName": { "type": "string" },
+        "direction": { "type": "string", "description": "bullish|bearish|neutral" },
+        "horizon": { "type": "string" },
+        "conviction": { "type": ["number", "null"] },
+        "convictionNote": { "type": "string", "description": "信心度缺失说明" },
+        "decisionDate": { "type": "string" },
+        "thesis": { "type": "string" },
+        "keyReasons": { "type": "array", "items": { "type": "string" } },
+        "premise": { "type": "array", "items": { "type": "string" } },
+        "invalidationConditions": { "type": "array", "items": { "type": "string" } },
+        "actionNote": { "type": ["string", "null"] }
+      }
+    },
+    "outcome": {
+      "type": ["object", "null"],
+      "description": "现役判定回填结果（decision_reviews 行）；reviewStatus=pending_outcome/no_decision_found 时为 null",
+      "properties": {
+        "reviewDate": { "type": "string" },
+        "horizonDays": { "type": ["integer", "null"] },
+        "resultLabel": { "type": "string", "description": "现役判定引擎分级（right/wrong 等）" },
+        "outcomeReturn": { "type": ["number", "null"] },
+        "benchmarkReturn": { "type": ["number", "null"] },
+        "excessReturn": { "type": ["number", "null"] },
+        "maxDrawdown": { "type": ["number", "null"] }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "description": "复盘要点（来自现役 decision_reviews 行字段，代码透传不经 LLM）",
+      "properties": {
+        "whatWentRight": { "type": ["string", "null"] },
+        "whatWentWrong": { "type": ["string", "null"] },
+        "missedFactors": { "type": ["string", "null"] },
+        "overWeightedFactors": { "type": ["string", "null"] },
+        "newRuleLearned": { "type": ["string", "null"] }
+      }
+    },
+    "lessons": {
+      "type": "array",
+      "description": "认知修正（LLM 产出；按 前提/推理/执行/结果 分类）；LLM 不可用空数组 + analysisNote",
+      "items": {
+        "type": "object",
+        "required": ["type", "lesson"],
+        "properties": {
+          "type": { "enum": ["premise", "reasoning", "execution", "outcome", "other"] },
+          "lesson": { "type": "string" },
+          "evidence": { "type": "string", "description": "支撑该修正的决策/结果事实" }
+        }
+      }
+    },
+    "analysisNote": { "type": "string", "description": "分析降级说明（LLM 未参与/决策未到期等）" },
+    "compliance": {
+      "type": "object",
+      "required": ["passed", "note"],
+      "description": "合规断言：代码固定产出，不经 LLM",
+      "properties": {
+        "passed": { "type": "boolean" },
+        "note": { "type": "string" }
+      }
+    },
+    "_meta": {
+      "type": "object",
+      "description": "运行元数据（非协议内容）",
+      "properties": {
+        "schema_valid": { "type": "boolean" },
+        "schema_errors": { "type": "array", "items": { "type": "string" } },
+        "job_id": { "type": "string" },
+        "agent_type": { "type": "string" },
+        "llm_used": { "type": "boolean" },
+        "generated_at": { "type": "string" },
+        "decision_count": { "type": "integer", "description": "候选决策数" }
+      }
+    }
+  }
+}
