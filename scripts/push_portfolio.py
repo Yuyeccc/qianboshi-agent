@@ -68,7 +68,7 @@ def _load_json(name: str) -> dict:
     p = DATA_DIR / name
     if not p.exists():
         return {}
-    return json.loads(p.read_text(encoding="utf-8"))
+    return json.loads(p.read_text(encoding="utf-8-sig"))
 
 
 def _fmt_pnl(pnl: float, pct: float) -> str:

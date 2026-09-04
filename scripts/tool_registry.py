@@ -415,7 +415,7 @@ class ToolRegistry:
         if not pf_path.exists():
             return {"holdings": [], "total_value": 0, "total_pnl": 0, "message": "暂无持仓"}
 
-        pf = json.loads(pf_path.read_text(encoding="utf-8"))
+        pf = json.loads(pf_path.read_text(encoding="utf-8-sig"))
         holdings = pf.get("holdings", {})
         if not holdings:
             return {"holdings": [], "total_value": 0, "total_pnl": 0, "message": "暂无持仓"}
@@ -659,7 +659,7 @@ class ToolRegistry:
         # 更新持仓
         pf_path = data_dir / "portfolio.json"
         if pf_path.exists():
-            pf = json.loads(pf_path.read_text(encoding="utf-8"))
+            pf = json.loads(pf_path.read_text(encoding="utf-8-sig"))
             holdings = pf.get("holdings", {})
             if type == "buy":
                 if code in holdings:

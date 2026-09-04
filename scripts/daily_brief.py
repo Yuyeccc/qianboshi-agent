@@ -151,7 +151,7 @@ def fetch_portfolio_status(config):
     if not pf_path.exists():
         return {"holdings": [], "empty": True}
 
-    pf = json.loads(pf_path.read_text(encoding="utf-8"))
+    pf = json.loads(pf_path.read_text(encoding="utf-8-sig"))
     holdings = pf.get("holdings", {})
     if not holdings:
         return {"holdings": [], "empty": True}

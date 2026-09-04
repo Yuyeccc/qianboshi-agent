@@ -283,7 +283,7 @@ class QianboshiAgent:
             try:
                 pf_path = Path(__file__).resolve().parent.parent / "data" / "portfolio.json"
                 if pf_path.exists():
-                    pf = json.loads(pf_path.read_text(encoding="utf-8"))
+                    pf = json.loads(pf_path.read_text(encoding="utf-8-sig"))
                     holdings = pf.get("holdings", {})
                     try:
                         from tool_registry import _estimate_offshore_nav

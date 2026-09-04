@@ -174,14 +174,27 @@ def _format_hit_rate(row: sqlite3.Row | None) -> str:
 
 
 def _build_user_decisions(con: sqlite3.Connection, prices: dict[str, Any]) -> list[dict[str, Any]]:
+    """决策两段式查询（2026-09-04 修复空注入）：status='open' 在途决策 +
+    近 30 日已完成复盘（decision_reviews.review_date 窗口）的 reviewed 决策。
+
+    原实现只查 open → 库中决策全为 reviewed（22:30 daily_decision_review
+    每日回填）→ 返回空 → 外层资产列表空 → debate_cards/factor_states 从未
+    被遍历 → 决策台 4 模块空 3。放宽后恢复注入完整性。
+    """
     today = date.today()
     decisions = con.execute(
         """
         SELECT decision_id, asset_id, asset_name, direction, horizon, conviction,
                decision_date, thesis, key_reasons, invalidation_conditions, status
-        FROM user_decision_logs
-        WHERE status = 'open'
-        ORDER BY decision_date, decision_id
+        FROM user_decision_logs d
+        WHERE d.status = 'open'
+           OR (d.status = 'reviewed'
+               AND EXISTS (
+                   SELECT 1 FROM decision_reviews r
+                   WHERE r.decision_id = d.decision_id
+                     AND r.review_date >= date('now', '-30 days')
+               ))
+        ORDER BY d.decision_date, d.decision_id
         """
     ).fetchall()
 

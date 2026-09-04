@@ -53,7 +53,7 @@ def _backup(path):
 
 
 def _read_json(path):
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def _write_json(path, data):

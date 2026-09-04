@@ -148,7 +148,7 @@ def collect_context():
         pf_path = PROJECT_DIR / "data" / "portfolio.json"
         if not pf_path.exists():
             pf_path = SCRIPT_DIR.parent / "portfolio.json"
-        pf = json.loads(pf_path.read_text(encoding="utf-8"))
+        pf = json.loads(pf_path.read_text(encoding="utf-8-sig"))
         for code, info in pf.get("holdings", {}).items():
             ctx["portfolio"][code] = {
                 "name": info.get("name", code),
