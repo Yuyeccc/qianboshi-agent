@@ -32,6 +32,8 @@
 - agent.py run_schedule 迁入 orchestrator 定时（ADR-001 提及，未动现役）
 - 记忆体系 P0/P0.5/P1 全 ✅（P0=8f0a97c 状态机骨架 / P0.5=e1138ad 自动评估 249 falsified / P1=44c470e+76ad14b 信念版本链+决策冻结 / 2e24cb2+e9baa16 事件时间轴 12835 事件+MCP timeline）；P0.5b ✅（252f6fc horizon↔窗口匹配：316 confirmed+87 falsified 落库，87 为 P0.5 漏判修正）；**P2 ✅ 2026-09-03**（刀0 词典覆盖审计→刀1 memory_conflicts 250 open→刀2 rule_lifecycle 3 active→刀3 report_docs 11 登记+481 互链→刀4 报告进 chroma+状态过滤→刀5 lint P2 段+文档，单测 377 全绿）；flag 仍默认关待观察
 - 记忆体系 P2 收尾遗留：① memory_conflicts 250 open 待人工裁决（direction 60/temporal 187/user_belief 3，裁决命令 memory_conflicts.py resolve）② decision_reviews.new_rule_learned 全空→复盘器未填充（规则闭环数据上游，复盘器改造后 extract 自动生效）③ 词典扩展候选：stocks 40（宽基 ETF 510300 等）+新能源链无 canonical（300750/601127）+us_mapping 28（META/AAPL）④ 报告 entity 未标 4 份（地产等无 canonical 或文本短）待人工补 ⑤ lint 现 WARN=conflicts backlog 提示属预期
+- **日报审验-自补（2026-09-05，①②③④ ✅，⑤~ 未批待开工门）**：① 33_reviewer schema（051dc9c）② 注入 3 bug 修复（8958602：portfolio BOM ×6 + decision_desk 两段式）③ check_report_inputs（375dc63，单测 18/18）④ reviewer_agent 只读 dry-run（b3bd37b，单测 17/17，回放产物 data/reviews_reviewer/ 已入库）。**⑤~ 后续步（下会话候选，蓝图=workspace/qianboshi-autonomy-design/日报审验自补_融合设计_20260904.md + 本会话交接归档）**：装配器 report_assembler（缺漏透明交付章节+头部状态）→ 美股夜盘采集器 us_market_fetch（新浪代码映射已实测：int_dji/int_nasdaq/int_sp500/znb_VIX/gb_nvda 等；持仓现 3 仓全 A 股→清单=指数4+tracking pool 美股；独立落 data/market/us_cache.json）→ cron 0073d213839b prompt 改造（check→reviewer dry-run→装配→交付，REVIEWER_ENABLED 先关灰度一周）→ Reviewer LLM 语义审验（active-repair 模式，分权表 gpt 二轮 §A.3）
+- 已知 pre-existing（非本次引入）：tests/test_monitor.py::test_no_trigger_within_threshold 时间敏感失败——测试写死缓存时间戳 2026-09-03T10:00，现时跨日致 38h 超期警告 ≠ '无异常'（stash 验证改动前后均 FAILED）；修法=测试用相对 now 时间戳
 
 ## 铁律与坑（触犯必返工）
 
