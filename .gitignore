@@ -73,3 +73,6 @@ data/创新药分析报告_20260806.md
 # 一次性/运行时
 run_gpt55_audit.py
 data/shenyan_video_meta.json
+
+# 研究任务运行态（orchestrator/backend 共享 job 队列，非产物）
+data/research_jobs/
