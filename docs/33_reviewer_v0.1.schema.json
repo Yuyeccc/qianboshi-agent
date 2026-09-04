@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "33_reviewer_v0.1.schema.json",
+  "title": "日报审验报告 v0.1（reviewer_agent 产物协议）",
+  "type": "object",
+  "required": [
+    "review_run_id",
+    "report_id",
+    "job_id",
+    "report_date",
+    "generator_model",
+    "reviewer_model",
+    "input_snapshot_ids",
+    "tool_calls",
+    "claim_extracts",
+    "findings",
+    "repairs",
+    "unresolved_gaps",
+    "final_status",
+    "timestamps",
+    "_meta"
+  ],
+  "properties": {
+    "review_run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "job_id": {
+      "type": "string"
+    },
+    "report_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "generator_model": {
+      "type": "string"
+    },
+    "reviewer_model": {
+      "type": "string"
+    },
+    "input_snapshot_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tool_calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "call_id",
+          "tool_name",
+          "started_at",
+          "ended_at",
+          "status"
+        ],
+        "properties": {
+          "call_id": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "arguments_sha256": {
+            "type": "string"
+          },
+          "source_mode": {
+            "type": "string",
+            "enum": [
+              "live",
+              "cache",
+              "stale",
+              "missing",
+              "internal"
+            ]
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "latency_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "timeout",
+              "error",
+              "skipped"
+            ]
+          },
+          "result_sha256": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "claim_extracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim_id",
+          "text",
+          "section",
+          "evidence_refs"
+        ],
+        "properties": {
+          "claim_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "section": {
+            "type": "string"
+          },
+          "claim_type": {
+            "type": "string",
+            "enum": [
+              "fact",
+              "inference",
+              "forecast",
+              "recommendation"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "finding_id",
+          "category",
+          "severity",
+          "status",
+          "description"
+        ],
+        "properties": {
+          "finding_id": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocker",
+              "high",
+              "medium",
+              "low",
+              "info"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "repaired",
+              "accepted",
+              "not_reproducible"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "section": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "detector": {
+            "type": "string",
+            "enum": [
+              "deterministic",
+              "llm",
+              "hybrid"
+            ]
+          }
+        }
+      }
+    },
+    "repairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "repair_id",
+          "finding_id",
+          "action",
+          "status"
+        ],
+        "properties": {
+          "repair_id": {
+            "type": "string"
+          },
+          "finding_id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "applied",
+              "skipped",
+              "failed",
+              "proposed"
+            ]
+          },
+          "before_sha256": {
+            "type": "string"
+          },
+          "after_sha256": {
+            "type": "string"
+          },
+          "tool_call_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "unresolved_gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "gap_id",
+          "description",
+          "severity",
+          "delivery"
+        ],
+        "properties": {
+          "gap_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "delivery": {
+            "type": "string",
+            "enum": [
+              "transparent",
+              "blocked"
+            ]
+          }
+        }
+      }
+    },
+    "final_status": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "pass_with_gaps",
+        "fail_closed"
+      ]
+    },
+    "timestamps": {
+      "type": "object",
+      "required": [
+        "started_at",
+        "finished_at",
+        "report_cutoff_at"
+      ],
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "report_cutoff_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "_meta": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "deterministic_fields",
+        "llm_fields"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string"
+        },
+        "deterministic_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "llm_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prompt_version": {
+          "type": "string"
+        },
+        "config_hash": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "description": "reviewer_agent 对日报初稿 + 输入快照的独立审验产物：claim 抽取/证据引用/findings/repairs/unresolved_gaps/final_status + tool_calls 审计。确定性字段与 LLM 字段分家（_meta.deterministic_fields/llm_fields）。只读审验，不改原始日报；补数只写独立缓存。"
+}
