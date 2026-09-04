@@ -1,0 +1,143 @@
+{
+ "review_run_id": "review_2026-09-04_67e12a50",
+ "report_id": "daily-2026-09-04",
+ "job_id": "",
+ "report_date": "2026-09-04",
+ "generator_model": "agent.py-brief",
+ "reviewer_model": "deterministic-dryrun",
+ "input_snapshot_ids": [
+  "portfolio.json",
+  "qianboshi_decision.db",
+  "market_cache.json",
+  "tracking_pool.json",
+  "views/structured_views.jsonl"
+ ],
+ "tool_calls": [],
+ "claim_extracts": [],
+ "findings": [
+  {
+   "finding_id": "DATA-01",
+   "category": "数据缺失",
+   "severity": "high",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 2 注入失败声明 1 处: 持仓明细工具返回 UTF-8 BOM 解码错误，数量、成本、现价、市值、盈亏额、仓位权重均为 N/A，暂无法逐项核验。组合纪律检查显示：",
+   "section": "## 2",
+   "evidence": "持仓明细工具返回 UTF-8 BOM 解码错误，数量、成本、现价、市值、盈亏额、仓位权重均为 N/A，暂无法逐项核验。组"
+  },
+  {
+   "finding_id": "DATA-02",
+   "category": "数据缺失",
+   "severity": "high",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 3 注入失败声明 1 处: 当前未注入 `open_user_decisions`，因此无法核对决策编号、资产、方向、周期、决策日、复盘日、验证状态及复盘结果。当前无进行中的用户决策。",
+   "section": "## 3",
+   "evidence": "当前未注入 `open_user_decisions`，因此无法核对决策编号、资产、方向、周期、决策日、复盘日、验证状态"
+  },
+  {
+   "finding_id": "DATA-03",
+   "category": "数据缺失",
+   "severity": "high",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 6 注入失败声明 1 处: 资产卡及因子状态未注入，无法确认新增、反转、强化或削弱因素。",
+   "section": "## 6",
+   "evidence": "资产卡及因子状态未注入，无法确认新增、反转、强化或削弱因素。"
+  },
+  {
+   "finding_id": "DATA-04",
+   "category": "数据缺失",
+   "severity": "medium",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 1 N/A 标记 2 处（占该节内容 50%）: - A股主要指数今日偏弱：上证指数3930.12，-0.30%；深证成指13516.97，-0.79%；创业板指涨跌数据为N/A。指数仍处于调整与等待变盘阶段。",
+   "section": "## 1",
+   "evidence": "- A股主要指数今日偏弱：上证指数3930.12，-0.30%；深证成指13516.97，-0.79%；创业板指涨跌数据; - 美股当前表现分化：道琼斯53419.46，-0.50%；纳斯达克26565.01，-0.07%；标普500 7727"
+  },
+  {
+   "finding_id": "DATA-05",
+   "category": "数据缺失",
+   "severity": "medium",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 4 数据缺失: 标的池扫描返回“未获取”，暂无涨跌幅、量比或成交额异动数据。",
+   "section": "## 4",
+   "evidence": "标的池扫描返回“未获取”，暂无涨跌幅、量比或成交额异动数据。"
+  },
+  {
+   "finding_id": "DATA-06",
+   "category": "数据缺失",
+   "severity": "medium",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 7 N/A 标记 2 处（占该节内容 40%）: - 黄金与美元指数｜观察口径：美元指数、黄金价格或518880场内ETF｜关联：GOLD｜触发信号：商品价格和汇率数据补齐｜当前数据：N/A。",
+   "section": "## 7",
+   "evidence": "- 黄金与美元指数｜观察口径：美元指数、黄金价格或518880场内ETF｜关联：GOLD｜触发信号：商品价格和汇率数据补; - 人民币汇率与铝价｜观察口径：汇率、有色金属价格｜关联：ALUMINUM｜触发信号：跨市场数据补齐｜当前数据：N/A。"
+  }
+ ],
+ "repairs": [],
+ "unresolved_gaps": [
+  {
+   "gap_id": "DATA-01",
+   "description": "章节 2 注入失败声明 1 处: 持仓明细工具返回 UTF-8 BOM 解码错误，数量、成本、现价、市值、盈亏额、仓位权重均为 N/A，暂无法逐项核验。组合纪律检查显示：",
+   "severity": "high",
+   "delivery": "transparent"
+  },
+  {
+   "gap_id": "DATA-02",
+   "description": "章节 3 注入失败声明 1 处: 当前未注入 `open_user_decisions`，因此无法核对决策编号、资产、方向、周期、决策日、复盘日、验证状态及复盘结果。当前无进行中的用户决策。",
+   "severity": "high",
+   "delivery": "transparent"
+  },
+  {
+   "gap_id": "DATA-03",
+   "description": "章节 6 注入失败声明 1 处: 资产卡及因子状态未注入，无法确认新增、反转、强化或削弱因素。",
+   "severity": "high",
+   "delivery": "transparent"
+  },
+  {
+   "gap_id": "DATA-04",
+   "description": "章节 1 N/A 标记 2 处（占该节内容 50%）: - A股主要指数今日偏弱：上证指数3930.12，-0.30%；深证成指13516.97，-0.79%；创业板指涨跌数据为N/A。指数仍处于调整与等待变盘阶段。",
+   "severity": "medium",
+   "delivery": "transparent"
+  },
+  {
+   "gap_id": "DATA-05",
+   "description": "章节 4 数据缺失: 标的池扫描返回“未获取”，暂无涨跌幅、量比或成交额异动数据。",
+   "severity": "medium",
+   "delivery": "transparent"
+  },
+  {
+   "gap_id": "DATA-06",
+   "description": "章节 7 N/A 标记 2 处（占该节内容 40%）: - 黄金与美元指数｜观察口径：美元指数、黄金价格或518880场内ETF｜关联：GOLD｜触发信号：商品价格和汇率数据补齐｜当前数据：N/A。",
+   "severity": "medium",
+   "delivery": "transparent"
+  }
+ ],
+ "final_status": "pass_with_gaps",
+ "timestamps": {
+  "started_at": "2026-09-04T16:04:44Z",
+  "finished_at": "2026-09-04T16:04:44Z",
+  "report_cutoff_at": "2026-09-04T22:00:00+08:00"
+ },
+ "_meta": {
+  "schema_version": "33_reviewer_v0.1",
+  "deterministic_fields": [
+   "review_run_id",
+   "report_id",
+   "job_id",
+   "report_date",
+   "input_snapshot_ids",
+   "findings",
+   "tool_calls",
+   "unresolved_gaps",
+   "final_status",
+   "timestamps"
+  ],
+  "llm_fields": [],
+  "prompt_version": "dry-run-v0.1",
+  "config_hash": "a77817afbdee",
+  "schema_valid": true
+ }
+}

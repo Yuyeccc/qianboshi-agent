@@ -1,0 +1,143 @@
+{
+ "review_run_id": "review_2026-09-03_4ef899f6",
+ "report_id": "daily-2026-09-03",
+ "job_id": "",
+ "report_date": "2026-09-03",
+ "generator_model": "agent.py-brief",
+ "reviewer_model": "deterministic-dryrun",
+ "input_snapshot_ids": [
+  "portfolio.json",
+  "qianboshi_decision.db",
+  "market_cache.json",
+  "tracking_pool.json",
+  "views/structured_views.jsonl"
+ ],
+ "tool_calls": [],
+ "claim_extracts": [],
+ "findings": [
+  {
+   "finding_id": "DATA-01",
+   "category": "数据缺失",
+   "severity": "high",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 3 注入失败声明 1 处: 决策台数据未注入 `user_decision_logs`、`decision_reviews`、代理标的基准价及当前价口径，不能使用背景锚点代填，也不能判定任何决策正确或错误。",
+   "section": "## 3",
+   "evidence": "决策台数据未注入 `user_decision_logs`、`decision_reviews`、代理标的基准价及当前价"
+  },
+  {
+   "finding_id": "DATA-02",
+   "category": "数据缺失",
+   "severity": "high",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 5 注入失败声明 1 处: 多空卡和 `analyst_scores` 未注入，以下仅列结构化观点，不生成卡片共识或命中率。",
+   "section": "## 5",
+   "evidence": "多空卡和 `analyst_scores` 未注入，以下仅列结构化观点，不生成卡片共识或命中率。"
+  },
+  {
+   "finding_id": "DATA-03",
+   "category": "数据缺失",
+   "severity": "high",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 6 注入失败声明 1 处: 资产卡与 `factor_states` 未注入，无法确认新增、反转、强化或削弱因素。",
+   "section": "## 6",
+   "evidence": "资产卡与 `factor_states` 未注入，无法确认新增、反转、强化或削弱因素。"
+  },
+  {
+   "finding_id": "DATA-04",
+   "category": "数据缺失",
+   "severity": "high",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 8 注入失败声明 1 处: 3. **决策证伪信号**：决策台未注入，无法获得 `asset_id / direction / review_date`，当前所有决策验证均为待验证。触发阈值、当前距离和复盘结果均为 N/A；处理",
+   "section": "## 8",
+   "evidence": "3. **决策证伪信号**：决策台未注入，无法获得 `asset_id / direction / review_dat"
+  },
+  {
+   "finding_id": "DATA-05",
+   "category": "数据缺失",
+   "severity": "medium",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 1 N/A 标记 2 处（占该节内容 50%）: - A股最新可得为昨收/缓存口径：上证指数 3942.09，深证成指 13625.12，创业板指 3312.54，创业板涨跌幅 N/A。指数整体变化有限，不能据",
+   "section": "## 1",
+   "evidence": "- A股最新可得为昨收/缓存口径：上证指数 3942.09，深证成指 13625.12，创业板指 3312.54，创业板; - 美股上涨对海外算力链形成外部支撑，但美元指数、人民币汇率、黄金现货、铝价当前均为 N/A，黄金与铝决策的跨市场验证不"
+  },
+  {
+   "finding_id": "DATA-06",
+   "category": "数据缺失",
+   "severity": "medium",
+   "status": "open",
+   "detector": "deterministic",
+   "description": "章节 7 数据缺失: - **美元指数与人民币汇率**｜观察口径：汇率｜关联：黄金、铝｜触发信号：美元和人民币同步明显波动｜证据链：当前数据 N/A。",
+   "section": "## 7",
+   "evidence": "- **美元指数与人民币汇率**｜观察口径：汇率｜关联：黄金、铝｜触发信号：美元和人民币同步明显波动｜证据链：当前数据 "
+  }
+ ],
+ "repairs": [],
+ "unresolved_gaps": [
+  {
+   "gap_id": "DATA-01",
+   "description": "章节 3 注入失败声明 1 处: 决策台数据未注入 `user_decision_logs`、`decision_reviews`、代理标的基准价及当前价口径，不能使用背景锚点代填，也不能判定任何决策正确或错误。",
+   "severity": "high",
+   "delivery": "transparent"
+  },
+  {
+   "gap_id": "DATA-02",
+   "description": "章节 5 注入失败声明 1 处: 多空卡和 `analyst_scores` 未注入，以下仅列结构化观点，不生成卡片共识或命中率。",
+   "severity": "high",
+   "delivery": "transparent"
+  },
+  {
+   "gap_id": "DATA-03",
+   "description": "章节 6 注入失败声明 1 处: 资产卡与 `factor_states` 未注入，无法确认新增、反转、强化或削弱因素。",
+   "severity": "high",
+   "delivery": "transparent"
+  },
+  {
+   "gap_id": "DATA-04",
+   "description": "章节 8 注入失败声明 1 处: 3. **决策证伪信号**：决策台未注入，无法获得 `asset_id / direction / review_date`，当前所有决策验证均为待验证。触发阈值、当前距离和复盘结果均为 N/A；处理",
+   "severity": "high",
+   "delivery": "transparent"
+  },
+  {
+   "gap_id": "DATA-05",
+   "description": "章节 1 N/A 标记 2 处（占该节内容 50%）: - A股最新可得为昨收/缓存口径：上证指数 3942.09，深证成指 13625.12，创业板指 3312.54，创业板涨跌幅 N/A。指数整体变化有限，不能据",
+   "severity": "medium",
+   "delivery": "transparent"
+  },
+  {
+   "gap_id": "DATA-06",
+   "description": "章节 7 数据缺失: - **美元指数与人民币汇率**｜观察口径：汇率｜关联：黄金、铝｜触发信号：美元和人民币同步明显波动｜证据链：当前数据 N/A。",
+   "severity": "medium",
+   "delivery": "transparent"
+  }
+ ],
+ "final_status": "pass_with_gaps",
+ "timestamps": {
+  "started_at": "2026-09-04T16:04:45Z",
+  "finished_at": "2026-09-04T16:04:45Z",
+  "report_cutoff_at": "2026-09-03T22:00:00+08:00"
+ },
+ "_meta": {
+  "schema_version": "33_reviewer_v0.1",
+  "deterministic_fields": [
+   "review_run_id",
+   "report_id",
+   "job_id",
+   "report_date",
+   "input_snapshot_ids",
+   "findings",
+   "tool_calls",
+   "unresolved_gaps",
+   "final_status",
+   "timestamps"
+  ],
+  "llm_fields": [],
+  "prompt_version": "dry-run-v0.1",
+  "config_hash": "720e099ed5e1",
+  "schema_valid": true
+ }
+}
