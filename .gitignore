@@ -56,6 +56,7 @@ data/auto_tracked.json
 data/bv_*.json
 data/*_bvs.json
 data/market_cache.json
+data/market/us_cache.json
 data/market_snapshot_10d.json
 data/monitor_state.json
 data/my_views.json
