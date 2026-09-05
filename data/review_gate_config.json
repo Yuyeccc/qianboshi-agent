@@ -1,0 +1,8 @@
+{
+  "REVIEWER_ENABLED": false,
+  "REVIEWER_ACTIVE_REPAIR": false,
+  "REVIEWER_FAIL_MODE": "degrade",
+  "REVIEWER_MAX_LATENCY_SECONDS": 180,
+  "REVIEWER_PROMPT_VERSION": "dry-run-v0.1",
+  "_comment": "日报审验闭环灰度开关（⑥ cron 接入）。REVIEWER_ENABLED=false=灰度一期：daily_review_gate 只落审验日志不改日报正文（恒 exit 0）；稳定一周对比缺漏率后置 true=开缺漏表装配（fail_closed 转人工 exit 2）。回滚=关回 false。布尔值请写 true/false。"
+}
