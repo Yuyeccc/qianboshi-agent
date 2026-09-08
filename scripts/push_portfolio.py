@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -22,9 +23,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 
-# 飞书应用凭据（与 .env 一致；也可用环境变量覆盖）
-APP_ID = "cli_aad43116e438dbd8"
-APP_SECRET = "REDACTED_FEISHU_SECRET_2026"
+# 飞书应用凭据：优先环境变量（Mac 部署可 export），回退 config_loader 加载的 .env；
+# 2026-09-08 安全修复：移除硬编码 secret（GitHub push protection 拦截后清理）
+try:
+    from config_loader import _load_dotenv  # noqa: PLC2701 同目录工具，无循环依赖
+
+    _load_dotenv()
+except ImportError:  # 极简环境无 config_loader 时降级为不加载，靠环境变量
+    pass
+
+APP_ID = os.environ.get("FEISHU_APP_ID") or ""
+APP_SECRET = os.environ.get("FEISHU_APP_SECRET") or ""
+if not APP_ID or not APP_SECRET:
+    raise SystemExit(
+        "缺少飞书应用凭据：请在 .env 或环境变量设置 FEISHU_APP_ID / FEISHU_APP_SECRET"
+    )
 
 # 默认目标群：钱博士Agent
 DEFAULT_CHAT_ID = "oc_47a6eeb5b1e02943fc50c479584b6324"
